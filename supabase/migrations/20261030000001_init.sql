@@ -712,31 +712,33 @@ begin
 end
 $$;
 
--- Used only by the worker sign-in endpoint (service role). Returns the
--- worker's login email when the link token and picture PIN match.
-create function public.verify_worker_login(p_member uuid, p_token text, p_pin text) returns text
+-- Used only by the worker sign-in endpoint (service role). Returns
+-- {"email": ...} when the link token and picture PIN match, otherwise
+-- {"error": "bad_link" | "locked" | "bad_pin" | "inactive"}. It returns
+-- instead of raising so that failed attempts are recorded.
+create function public.verify_worker_login(p_member uuid, p_token text, p_pin text) returns jsonb
 language plpgsql security definer set search_path = public, extensions as $$
 declare s public.member_secrets; em text;
 begin
   select * into s from public.member_secrets where member_id = p_member for update;
   if s.member_id is null or s.device_token_hash is null
      or s.device_token_hash <> encode(digest(p_token, 'sha256'), 'hex') then
-    raise exception 'bad_link';
+    return jsonb_build_object('error', 'bad_link');
   end if;
   if s.locked_until is not null and s.locked_until > now() then
-    raise exception 'locked';
+    return jsonb_build_object('error', 'locked');
   end if;
   if s.pin_hash is null or s.pin_hash <> crypt(p_pin, s.pin_hash) then
     update public.member_secrets set failed_attempts = failed_attempts + 1,
       locked_until = case when failed_attempts + 1 >= 5 then now() + interval '15 minutes' end
     where member_id = p_member;
-    raise exception 'bad_pin';
+    return jsonb_build_object('error', 'bad_pin');
   end if;
   update public.member_secrets set failed_attempts = 0, locked_until = null where member_id = p_member;
   select u.email into em from public.members m join auth.users u on u.id = m.user_id
   where m.id = p_member and m.active;
-  if em is null then raise exception 'inactive'; end if;
-  return em;
+  if em is null then return jsonb_build_object('error', 'inactive'); end if;
+  return jsonb_build_object('email', em);
 end
 $$;
 

@@ -45,22 +45,22 @@ exception when insufficient_privilege then null;
 end $$;
 reset role;
 do $$
-declare em text;
+declare r jsonb; i int;
 begin
-  em := public.verify_worker_login('10000000-0000-0000-0000-000000000001', (select t from tok), '1-2-3-4');
-  if em <> 'w1@workers.invalid' then raise exception 'wrong email %', em; end if;
-  begin
-    perform public.verify_worker_login('10000000-0000-0000-0000-000000000001', (select t from tok), '4-3-2-1');
-    raise exception 'wrong pin accepted';
-  exception when others then
-    if sqlerrm <> 'bad_pin' then raise; end if;
-  end;
-  begin
-    perform public.verify_worker_login('10000000-0000-0000-0000-000000000001', 'nope', '1-2-3-4');
+  r := public.verify_worker_login('10000000-0000-0000-0000-000000000001', (select t from tok), '1-2-3-4');
+  if r->>'email' <> 'w1@workers.invalid' then raise exception 'wrong result %', r; end if;
+  if public.verify_worker_login('10000000-0000-0000-0000-000000000001', 'nope', '1-2-3-4')->>'error' <> 'bad_link' then
     raise exception 'wrong token accepted';
-  exception when others then
-    if sqlerrm <> 'bad_link' then raise; end if;
-  end;
+  end if;
+  for i in 1..5 loop
+    r := public.verify_worker_login('10000000-0000-0000-0000-000000000001', (select t from tok), '4-3-2-1');
+    if r->>'error' <> 'bad_pin' then raise exception 'wrong pin accepted: %', r; end if;
+  end loop;
+  -- Locked after five wrong codes, even with the right one.
+  if public.verify_worker_login('10000000-0000-0000-0000-000000000001', (select t from tok), '1-2-3-4')->>'error' <> 'locked' then
+    raise exception 'not locked';
+  end if;
+  update public.member_secrets set locked_until = null, failed_attempts = 0;
 end $$;
 
 -- Schedule rules.

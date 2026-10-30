@@ -7,15 +7,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!body.member_id || !body.token || !body.pin) return json({ error: 'bad_request' }, 400);
 
   const db = serviceClient(env);
-  const { data: email, error } = await db.rpc('verify_worker_login', {
+  const { data, error } = await db.rpc('verify_worker_login', {
     p_member: body.member_id, p_token: body.token, p_pin: body.pin,
   });
-  if (error || !email) {
-    const code = error?.message ?? 'bad_link';
+  const result = data as { email?: string; error?: string } | null;
+  if (error || !result?.email) {
+    const code = result?.error ?? 'bad_link';
     return json({ error: code }, code === 'locked' ? 429 : 401);
   }
 
-  const { data: link, error: linkErr } = await db.auth.admin.generateLink({ type: 'magiclink', email: email as string });
+  const { data: link, error: linkErr } = await db.auth.admin.generateLink({ type: 'magiclink', email: result.email });
   if (linkErr || !link.properties?.hashed_token) return json({ error: 'Could not sign in' }, 500);
   return json({ token_hash: link.properties.hashed_token });
 };
