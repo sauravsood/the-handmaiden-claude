@@ -1,0 +1,3 @@
+# Secrets for the Cloudflare Pages Functions when running `wrangler pages dev`.
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
