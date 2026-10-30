@@ -162,7 +162,7 @@ label.check { display: inline-flex; gap: 8px; align-items: center; cursor: point
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 @media (max-width: 760px) {
-  .admin { grid-template-columns: 1fr; }
+  .admin { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .sidebar {
     position: sticky; top: 0; z-index: 5; height: auto; flex-direction: row; overflow-x: auto;
     padding: 8px; border-right: 0; border-bottom: 1px solid var(--line);
@@ -299,3 +299,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 .center-page { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; }
 .auth-card { width: min(420px, 100%); }
+
+/* Keep alt text small if a photo fails to load. */
+.w-tile .pic img, .w-detail .hero, .thumb img, .w-step .pic img { font-size: 13px; color: var(--muted); }

@@ -16,7 +16,7 @@ const ACTION: Record<string, string> = {
 
 export function SettingsPage() {
   const { household } = useMe();
-  const { reload } = useAuth();
+  const { reload, signOut, member } = useAuth();
   const [name, setName] = useState(household.name);
   const [tz, setTz] = useState(household.timezone);
   const [saved, setSaved] = useState(false);
@@ -38,7 +38,10 @@ export function SettingsPage() {
 
   return (
     <div className="stack lg" style={{ maxWidth: 760 }}>
-      <h1>Settings</h1>
+      <div className="page-head">
+        <h1>Settings</h1>
+        <div className="row"><span className="muted">{member?.display_name}</span><button onClick={signOut}>Sign out</button></div>
+      </div>
       <form className="card stack" onSubmit={save}>
         <h2>Household</h2>
         <label className="field"><span>Name</span><input id="st-name" value={name} onChange={(e) => { setName(e.target.value); setSaved(false); }} /></label>

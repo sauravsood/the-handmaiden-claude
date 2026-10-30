@@ -857,6 +857,13 @@ revoke execute on function public.ensure_occurrences_all() from public, anon, au
 revoke execute on function public.log_activity(uuid, text, uuid, uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.worker_link_info(uuid, text) to anon, authenticated;
 
+-- Live updates for the admin board and the worker's list.
+do $$ begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    alter publication supabase_realtime add table public.occurrences;
+  end if;
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Storage: one private bucket, files grouped by household folder
 -- ---------------------------------------------------------------------------
