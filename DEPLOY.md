@@ -15,7 +15,11 @@ About 15 minutes. You need a Supabase account and the Cloudflare account that ho
    - Site URL: `https://tasks.sauravsood.com`
    - Redirect URLs: add `https://tasks.sauravsood.com/**`
 5. **Authentication > Providers > Email**: keep it on. Turning off "Confirm email" is not needed; admins sign in by magic link.
-6. **Project Settings > API**: note the Project URL, the `anon` public key and the `service_role` key (keep this one secret).
+6. **Project Settings > API Keys > Legacy API Keys**: you will copy two keys from here in the Cloudflare step:
+   - `anon` (public, safe to put in the web app)
+   - `service_role` (secret, never share it)
+
+   The Project URL (`https://<ref>.supabase.co`) is under **Project Settings > Data API**.
 
 The default Supabase email sender is limited to a few emails an hour. For more admins, add your own SMTP under **Authentication > Emails**.
 
@@ -26,14 +30,16 @@ The default Supabase email sender is limited to a few emails an hour. For more a
    - Production branch: `main`
    - Build command: `npm run build`
    - Build output directory: `dist`
-3. **Environment variables** (Production and Preview):
+3. On the same screen, open **Environment variables (advanced)** and click **Add variable** four times. Type the name in the left box and paste the value from Supabase in the right box:
 
-   | Name | Value | Type |
+   | Variable name | Value to paste | Type |
    | --- | --- | --- |
-   | `VITE_SUPABASE_URL` | Project URL | Plain text |
-   | `VITE_SUPABASE_ANON_KEY` | anon key | Plain text |
-   | `SUPABASE_URL` | Project URL | Plain text |
-   | `SUPABASE_SERVICE_ROLE_KEY` | service_role key | **Secret** |
+   | `VITE_SUPABASE_URL` | Project URL, e.g. `https://abcd1234.supabase.co` | Text |
+   | `VITE_SUPABASE_ANON_KEY` | the `anon` key | Text |
+   | `SUPABASE_URL` | the same Project URL again | Text |
+   | `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` key | **Secret** (click Encrypt) |
+
+   The first two are built into the web page. The last two are only used by the server code that adds and signs in workers. Nobody else needs to see these values, including Claude.
 
 4. Save and deploy. Every merge to `main` deploys again.
 5. In the Pages project, **Custom domains** > **Set up a custom domain** > `tasks.sauravsood.com`. Because the domain is already on Cloudflare, the DNS record and HTTPS certificate are created for you.
