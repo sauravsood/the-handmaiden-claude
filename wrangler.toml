@@ -2,3 +2,12 @@ name = "handmaiden"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Pages uses this file as the source of truth for plain variables,
+# so they live here; values typed in the dashboard are replaced on each deploy.
+# The URL and anon key are public (they ship in the web page). Keep
+# SUPABASE_SERVICE_ROLE_KEY as an encrypted secret in the dashboard only.
+[vars]
+VITE_SUPABASE_URL = "https://wlomaeesdjbtybkvuadh.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indsb21hZWVzZGpidHlia3Z1YWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzOTk5OTgsImV4cCI6MjEwODk3NTk5OH0.8lSYk3CK7m82ziQcASfJ0ar9Q0bnc3wgVNxprk8nk8M"
+SUPABASE_URL = "https://wlomaeesdjbtybkvuadh.supabase.co"

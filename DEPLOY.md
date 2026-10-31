@@ -39,6 +39,8 @@ The default Supabase email sender is limited to a few emails an hour. For more a
    | `SUPABASE_URL` | the same Project URL again | Text |
    | `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` key | **Secret** (click Encrypt) |
 
+   Note: because the repo has a `wrangler.toml`, Cloudflare takes the three plain (Text) variables from its `[vars]` section and drops dashboard copies on every deploy. For this site they are already in `wrangler.toml`; for a different Supabase project, edit them there. Only the `SUPABASE_SERVICE_ROLE_KEY` secret belongs in the dashboard.
+
    The first two are built into the web page. The last two are only used by the server code that adds and signs in workers. Nobody else needs to see these values, including Claude.
 
 4. Save and deploy. Every merge to `main` deploys again.
