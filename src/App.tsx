@@ -61,18 +61,18 @@ function Home() {
 }
 
 function AdminGuard() {
-  const { loading, session, member } = useAuth();
+  const { loading, session, member, household } = useAuth();
   if (loading) return <Loading />;
   if (!session) return <Navigate to="/admin/login" replace />;
-  if (!member) return <Onboarding />;
+  if (!member || !household) return <Onboarding />;
   if (member.role === 'worker') return <Navigate to="/w" replace />;
   return <AdminLayout />;
 }
 
 function WorkerGuard() {
-  const { loading, member } = useAuth();
+  const { loading, member, household } = useAuth();
   if (loading) return <Loading />;
-  if (!member) return <WorkerSignedOut />;
+  if (!member || !household) return <WorkerSignedOut />;
   if (member.role !== 'worker') return <Navigate to="/admin" replace />;
   return <WorkerHome />;
 }

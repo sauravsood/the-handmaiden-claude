@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { supabase } from './lib/supabase';
 import type { Household, Member } from './lib/types';
 
@@ -21,26 +21,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [household, setHousehold] = useState<Household | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Each load gets a number so a slow, older load cannot overwrite a newer one.
+  const loadSeq = useRef(0);
+
   const load = useCallback(async (s: Session | null) => {
-    if (!s) {
-      setMember(null);
-      setHousehold(null);
-      setLoading(false);
-      return;
+    const seq = ++loadSeq.current;
+    let m: Member | null = null;
+    let h: Household | null = null;
+    if (s) {
+      const { data } = await supabase.from('members').select('*').eq('user_id', s.user.id).maybeSingle();
+      m = (data as Member) ?? null;
+      if (!m) {
+        // An admin who was invited by email joins on first sign-in.
+        const { data: inv } = await supabase.rpc('accept_invite', { p_display_name: null });
+        m = inv && (inv as Member).id ? (inv as Member) : null;
+      }
+      if (m) {
+        const { data: hh } = await supabase.from('households').select('*').eq('id', m.household_id).maybeSingle();
+        h = (hh as Household) ?? null;
+      }
     }
-    let { data: m } = await supabase.from('members').select('*').eq('user_id', s.user.id).maybeSingle();
-    if (!m) {
-      // An admin who was invited by email joins on first sign-in.
-      const { data } = await supabase.rpc('accept_invite', { p_display_name: null });
-      m = data && (data as Member).id ? data : null;
-    }
-    setMember((m as Member) ?? null);
-    if (m) {
-      const { data: h } = await supabase.from('households').select('*').eq('id', (m as Member).household_id).single();
-      setHousehold(h as Household);
-    } else {
-      setHousehold(null);
-    }
+    if (seq !== loadSeq.current) return;
+    // Set member and household together, so screens never see a member without a household.
+    setMember(m);
+    setHousehold(h);
     setLoading(false);
   }, []);
 
