@@ -1,6 +1,20 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Google tag (gtag.js) for sauravsood.com and its subdomains. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K71K5101R8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      // Worker sign-in links carry a secret in the URL hash (/w/link#...), so
+      // report the page address without the hash. SPA route changes are picked
+      // up by GA4 enhanced measurement (browser history events).
+      gtag('config', 'G-K71K5101R8', {
+        page_location: location.origin + location.pathname + location.search
+      });
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#1f3a5f" />
