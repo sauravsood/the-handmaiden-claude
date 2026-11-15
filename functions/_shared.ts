@@ -3,11 +3,20 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 export interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
+  VITE_SUPABASE_ANON_KEY: string;
 }
 
 export function serviceClient(env: Env): SupabaseClient {
   return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/** A client that acts as the signed-in user whose token is given (RLS applies). */
+export function userClient(env: Env, jwt: string): SupabaseClient {
+  return createClient(env.SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
   });
 }
 
