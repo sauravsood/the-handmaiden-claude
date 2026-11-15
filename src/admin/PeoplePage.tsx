@@ -113,6 +113,9 @@ function AddWorker({ onClose, onCreated }: { onClose: () => void; onCreated: (w:
   const [pin, setPin] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One id per dialog: if the connection drops and the admin taps again,
+  // the server returns the worker it already made instead of a duplicate.
+  const [requestId] = useState(() => crypto.randomUUID());
 
   const create = async () => {
     if (!name.trim()) return setError('Enter a name.');
@@ -125,12 +128,10 @@ function AddWorker({ onClose, onCreated }: { onClose: () => void; onCreated: (w:
       const res = await fetch('/api/workers', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${s.session?.access_token}` },
-        body: JSON.stringify({ display_name: name.trim(), photo_path }),
+        body: JSON.stringify({ display_name: name.trim(), photo_path, pin, request_id: requestId }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `Could not add worker (${res.status})`);
-      const { error: e } = await supabase.rpc('set_worker_pin', { p_member: body.member.id, p_pin: pin });
-      if (e) throw new Error(e.message);
       onCreated(body.member as Member);
     } catch (err) {
       setError(errorText(err));

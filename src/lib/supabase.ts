@@ -26,7 +26,11 @@ const FRIENDLY: Record<string, string> = {
   locked: 'Too many wrong tries. Wait 15 minutes.',
 };
 
+// What browsers say when a request never got an answer (Safari/iOS, Chrome, Firefox).
+const NETWORK = /^(Load failed|Failed to fetch|NetworkError when attempting to fetch resource\.?|Network request failed)$/i;
+
 export function errorText(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
+  if (NETWORK.test(msg)) return "Couldn't reach the server. Check the internet connection and try again.";
   return FRIENDLY[msg] ?? msg;
 }
