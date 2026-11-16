@@ -9,6 +9,7 @@ About 15 minutes. You need a Supabase account and the Cloudflare account that ho
 3. **SQL Editor**: run each file in `supabase/migrations/` in order (copy, paste, Run):
    - `20261030000001_init.sql`
    - `20261030000002_schedule_job.sql`
+   - `20261116000001_flexible_tasks.sql`
 
    Or with the CLI: `npx supabase link --project-ref <ref>` then `npx supabase db push`.
 4. **Authentication > URL Configuration**:

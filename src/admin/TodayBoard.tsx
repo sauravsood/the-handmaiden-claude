@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadMembers, loadOccurrences, loadTasks } from '../lib/data';
 import { formatTime, todayIn } from '../lib/dates';
-import { formatDay } from '../lib/schedule';
+import { addDays, formatDay } from '../lib/schedule';
 import { must, supabase } from '../lib/supabase';
 import { useAsync } from '../lib/useAsync';
 import type { Leave, Occurrence } from '../lib/types';
@@ -17,15 +17,17 @@ export function TodayBoard() {
   const today = todayIn(household.timezone);
   const [marking, setMarking] = useState<Occurrence | null>(null);
   const d = useAsync(async () => {
-    const [members, tasks, open, todays, leave] = await Promise.all([
+    const [members, tasks, open, todays, upcoming, leave] = await Promise.all([
       loadMembers(),
       loadTasks(),
       loadOccurrences({ to: today, status: ['open'] }),
       loadOccurrences({ from: today, to: today }),
+      loadOccurrences({ from: addDays(today, 1), status: ['open'] }),
       supabase.from('leave').select('*').lte('from_date', today).gte('to_date', today).then((r) => must(r) as Leave[]),
     ]);
     const occ = new Map<string, Occurrence>();
-    for (const o of [...open, ...todays]) occ.set(o.id, o);
+    // "This week" / "This month" tasks show from their first day.
+    for (const o of [...open, ...todays, ...upcoming.filter((u) => u.flexible)]) occ.set(o.id, o);
     return { members, tasks: new Map(tasks.map((t) => [t.id, t])), occ: [...occ.values()], leave };
   }, [today]);
 
@@ -42,8 +44,10 @@ export function TodayBoard() {
   const { members, tasks, occ, leave } = d.data;
   const nameOf = (id: string | null) => members.find((m) => m.id === id)?.display_name;
 
+  const later = (o: Occurrence) => o.status === 'open' && o.due_date > today;
   const total = occ.filter((o) => o.due_date === today && o.status !== 'skipped').length;
   const done = occ.filter((o) => o.due_date === today && o.status === 'done').length;
+  const extra = occ.filter(later).length;
   const overdue = occ.filter((o) => o.status === 'open' && o.due_date < today).length;
 
   return (
@@ -51,7 +55,7 @@ export function TodayBoard() {
       <div className="page-head">
         <div>
           <h1>Today</h1>
-          <small>{formatDay(today)} · {done} of {total} done{overdue ? ` · ${overdue} overdue` : ''}</small>
+          <small>{formatDay(today)} · {done} of {total} done{overdue ? ` · ${overdue} overdue` : ''}{extra ? ` · ${extra} this week or month` : ''}</small>
         </div>
         <Link className="btn primary" to="/admin/tasks/new">＋ New task</Link>
       </div>
@@ -66,12 +70,12 @@ export function TodayBoard() {
           {workers.map((w) => {
             const mine = occ.filter((o) => o.worker_id === w.id).sort((a, b) => {
               const ta = tasks.get(a.task_id), tb = tasks.get(b.task_id);
-              const rank = (o: Occurrence) => (o.status === 'open' ? (o.due_date < today ? 0 : 1) : 2);
+              const rank = (o: Occurrence) => (o.status === 'open' ? (o.due_date < today ? 0 : o.due_date > today ? 2 : 1) : 3);
               return rank(a) - rank(b) || (ta?.priority ?? 4) - (tb?.priority ?? 4)
                 || SLOT_ORDER[ta?.time_slot ?? 'anytime'] - SLOT_ORDER[tb?.time_slot ?? 'anytime'];
             });
             const away = leave.find((l) => l.worker_id === w.id);
-            const left = mine.filter((o) => o.status === 'open').length;
+            const left = mine.filter((o) => o.status === 'open' && !later(o)).length;
             return (
               <section key={w.id} className="board-col">
                 <header>
@@ -93,7 +97,8 @@ export function TodayBoard() {
                             <small>
                               {SLOT_ICON[t?.time_slot ?? 'anytime']}{' '}
                               {[
-                                o.done_at ? `Done ${formatTime(o.done_at, household.timezone)}` : o.due_date < today ? `Due ${formatDay(o.due_date)}` : '',
+                                o.done_at ? `Done ${formatTime(o.done_at, household.timezone)}` : o.due_date < today ? `Due ${formatDay(o.due_date)}`
+                                  : later(o) ? `Any day until ${formatDay(o.due_date)}` : '',
                                 doneByAdmin(o) ? `Marked by ${nameOf(o.done_by) ?? 'admin'}` : '',
                                 o.attempt > 1 && o.status === 'open' ? 'Sent back for a redo' : '',
                               ].filter(Boolean).join(' · ')}

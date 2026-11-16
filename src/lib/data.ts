@@ -83,7 +83,7 @@ export function draftFromTask(t: TaskFull): TaskDraft {
     exact_time: t.exact_time?.slice(0, 5) ?? '',
     photo_required: t.photo_required,
     schedule: {
-      schedule_kind: t.schedule_kind, due_date: t.due_date, freq: t.freq, interval: t.interval,
+      schedule_kind: t.schedule_kind, due_date: t.due_date, flexible: t.flexible, freq: t.freq, interval: t.interval,
       by_weekday: t.by_weekday, by_monthday: t.by_monthday, by_month: t.by_month,
       repeat_from: t.repeat_from, starts_on: t.starts_on, ends_on: t.ends_on,
     },
@@ -114,13 +114,16 @@ function taskColumns(d: TaskDraft) {
     photo_required: d.photo_required,
     schedule_kind: s.schedule_kind,
     due_date: s.schedule_kind === 'once' ? s.due_date : null,
+    flexible: s.schedule_kind === 'once' && s.flexible,
     freq: s.schedule_kind === 'repeat' ? s.freq : null,
     interval: s.interval,
     by_weekday: s.schedule_kind === 'repeat' && s.freq === 'weekly' && s.by_weekday?.length ? s.by_weekday : null,
     by_monthday: s.schedule_kind === 'repeat' && (s.freq === 'monthly' || s.freq === 'yearly') && s.by_monthday?.length ? s.by_monthday : null,
     by_month: s.schedule_kind === 'repeat' && s.by_month?.length ? s.by_month : null,
     repeat_from: s.repeat_from,
-    starts_on: s.schedule_kind === 'once' ? (s.due_date ?? s.starts_on) : s.starts_on,
+    starts_on: s.schedule_kind === 'once'
+      ? (s.flexible && s.due_date && s.starts_on < s.due_date ? s.starts_on : (s.due_date ?? s.starts_on))
+      : s.starts_on,
     ends_on: s.schedule_kind === 'repeat' ? s.ends_on || null : null,
   };
 }
@@ -189,7 +192,7 @@ export function emptyDraft(today: string): TaskDraft {
   return {
     title: '', description: '', priority: 4, time_slot: 'anytime', exact_time: '', photo_required: false,
     schedule: {
-      schedule_kind: 'repeat', due_date: today, freq: 'daily', interval: 1, by_weekday: null, by_monthday: null,
+      schedule_kind: 'repeat', due_date: today, flexible: false, freq: 'daily', interval: 1, by_weekday: null, by_monthday: null,
       by_month: null, repeat_from: 'schedule', starts_on: today, ends_on: null,
     },
     workerIds: [], labelIds: [], cover: null, photos: [], steps: [],
