@@ -9,8 +9,9 @@ import { useAsync } from '../lib/useAsync';
 import type { Comment, Occurrence, OccurrenceAttempt, Task } from '../lib/types';
 import { Avatar, ErrorBox, Loading, Modal, Photo, StatusPill } from '../components/ui';
 import { CommentList } from './CommentList';
+import { doneByAdmin, MarkDoneDialog } from './MarkDoneDialog';
 
-type Action = 'approve' | 'flag' | 'reopen' | 'skip' | null;
+type Action = 'approve' | 'flag' | 'reopen' | 'skip' | 'done' | null;
 
 export function OccurrenceDetail() {
   const { id } = useParams();
@@ -66,6 +67,7 @@ export function OccurrenceDetail() {
           <div className="stack grow" style={{ minWidth: 220 }}>
             <div className="row"><Avatar member={worker} /> <strong>{worker?.display_name}</strong></div>
             {o.done_at && <p>Done {formatDateTime(o.done_at, household.timezone)}{o.done_late ? ' (late)' : ''}</p>}
+            {doneByAdmin(o) && <small>Marked done by {byId.get(o.done_by!)?.display_name ?? 'an admin'}, not ticked by {worker?.display_name ?? 'the worker'}</small>}
             {o.status === 'skipped' && <p>Skipped{o.skip_reason ? `: ${o.skip_reason}` : ''}</p>}
             {t.task_steps.length > 0 && o.status === 'done' && (
               <small>Steps ticked: {o.steps_done.length} of {t.task_steps.length}</small>
@@ -81,6 +83,7 @@ export function OccurrenceDetail() {
           {o.status === 'done' && o.review_status !== 'flagged' && <button className="danger" onClick={() => setAction('flag')}>⚑ Flag as unsatisfactory</button>}
           {o.status === 'done' && <button onClick={() => setAction('reopen')}>↺ Reopen and send back</button>}
           {o.status === 'done' && <Link className="btn" to={`/admin/tasks/new?from=${o.id}`}>＋ Create linked task</Link>}
+          {(o.status === 'open' || o.status === 'missed') && <button className="primary" onClick={() => setAction('done')}>✓ Mark as done</button>}
           {(o.status === 'open' || o.status === 'missed') && <button onClick={() => setAction('skip')}>Skip</button>}
           <Link className="btn ghost" to={`/admin/tasks/${t.id}/edit`}>Edit requirements</Link>
         </div>
@@ -116,13 +119,17 @@ export function OccurrenceDetail() {
         <CommentList comments={comments} members={byId} taskId={t.id} occurrenceId={o.id} onAdded={d.reload} />
       </section>
 
-      {action && <ActionDialog action={action} o={o} t={t} onClose={() => setAction(null)} onDone={() => { setAction(null); d.reload(); }} />}
+      {action === 'done' && (
+        <MarkDoneDialog o={o} title={t.title} workerName={worker?.display_name}
+          onClose={() => setAction(null)} onDone={() => { setAction(null); d.reload(); }} />
+      )}
+      {action && action !== 'done' && <ActionDialog action={action} o={o} t={t} onClose={() => setAction(null)} onDone={() => { setAction(null); d.reload(); }} />}
     </div>
   );
 }
 
 function ActionDialog({ action, o, t, onClose, onDone }: {
-  action: Exclude<Action, null>; o: Occurrence; t: Task; onClose: () => void; onDone: () => void;
+  action: Exclude<Action, null | 'done'>; o: Occurrence; t: Task; onClose: () => void; onDone: () => void;
 }) {
   const [comment, setComment] = useState('');
   const [title, setTitle] = useState(t.title);

@@ -58,10 +58,10 @@ export function AnalyticsPage() {
 
   const exportCsv = () => {
     const name = new Map(members.map((m) => [m.id, m.display_name]));
-    const rows = [['due_date', 'task', 'worker', 'status', 'done_at', 'late', 'review', 'attempt', 'photo']];
+    const rows = [['due_date', 'task', 'worker', 'status', 'done_at', 'late', 'review', 'attempt', 'photo', 'marked_by_admin']];
     for (const o of filtered) rows.push([
       o.due_date, tasks.get(o.task_id)?.title ?? '', name.get(o.worker_id) ?? '', o.status,
-      o.done_at ? formatDateTime(o.done_at, tz) : '', o.done_late ? 'yes' : '', o.review_status ?? '', String(o.attempt), o.proof_photo_path ? 'yes' : '',
+      o.done_at ? formatDateTime(o.done_at, tz) : '', o.done_late ? 'yes' : '', o.review_status ?? '', String(o.attempt), o.proof_photo_path ? 'yes' : '', o.done_by && o.done_by !== o.worker_id ? 'yes' : '',
     ]);
     const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
@@ -91,7 +91,7 @@ export function AnalyticsPage() {
       </div>
 
       <div className="stat-row">
-        <div className="stat"><div className="v">{pct(s.completionRate)}</div><div className="l">Completed ({s.done} of {s.due})</div></div>
+        <div className="stat"><div className="v">{pct(s.completionRate)}</div><div className="l">Completed ({s.done} of {s.due}){s.byAdmin ? `, ${s.byAdmin} marked by an admin` : ''}</div></div>
         <div className="stat"><div className="v">{pct(s.onTimeRate)}</div><div className="l">On time</div></div>
         <div className="stat"><div className="v">{s.missed + s.overdue}</div><div className="l">Missed or overdue</div></div>
         <div className="stat"><div className="v">{s.flagged}</div><div className="l">Flagged as unsatisfactory</div></div>

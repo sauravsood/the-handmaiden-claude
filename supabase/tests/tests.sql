@@ -182,6 +182,48 @@ begin
   if (select count(*) from public.activity where action = 'occurrence_flagged') <> 1 then raise exception 'activity'; end if;
 end $$;
 
+-- Another worker cannot tick someone else's task.
+reset role;
+create temp table dishes as
+  select id from public.occurrences where task_id = '20000000-0000-0000-0000-000000000001' and status = 'open';
+grant select on dishes to authenticated;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000d');
+do $$
+declare o uuid := (select id from dishes);
+begin
+  begin
+    perform public.complete_occurrence(o, null);
+    raise exception 'other worker completed it';
+  exception when others then if sqlerrm <> 'not_allowed' then raise; end if;
+  end;
+end $$;
+
+-- An admin marks the reopened dishes done for the worker: no photo needed,
+-- recorded as done by the admin and already approved.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+do $$
+declare o public.occurrences;
+begin
+  select * into o from public.occurrences where task_id = '20000000-0000-0000-0000-000000000001' and status = 'open';
+  perform public.complete_occurrence(o.id, null);
+  select * into o from public.occurrences where id = o.id;
+  if o.status <> 'done' then raise exception 'admin could not mark done'; end if;
+  if o.done_by is distinct from public.my_member_id() then raise exception 'done_by should be the admin'; end if;
+  if o.review_status <> 'approved' or o.reviewed_by is distinct from public.my_member_id() then
+    raise exception 'admin completion should be approved';
+  end if;
+  if not exists (select 1 from public.activity where occurrence_id = o.id and action = 'occurrence_done'
+                 and (details->>'by_admin')::boolean) then
+    raise exception 'activity should record by_admin';
+  end if;
+  -- The admin can take it back within the undo window.
+  perform public.undo_completion(o.id);
+  select * into o from public.occurrences where id = o.id;
+  if o.status <> 'open' or o.reviewed_by is not null then raise exception 'admin undo failed'; end if;
+  perform public.complete_occurrence(o.id, null);
+end $$;
+
 -- "This week" task: appears from today, due on its last day, never late before then.
 do $$
 declare
