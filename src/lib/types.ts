@@ -25,6 +25,8 @@ export interface Member {
 export interface Schedule {
   schedule_kind: 'once' | 'repeat';
   due_date: string | null;
+  /** One-off that can be done any day from starts_on up to due_date ("This week" / "This month"). */
+  flexible: boolean;
   freq: Freq | null;
   interval: number;
   by_weekday: number[] | null;
@@ -86,6 +88,8 @@ export interface Occurrence {
   task_id: string;
   worker_id: string;
   due_date: string;
+  /** Can be done any day up to due_date; shown to the worker before then. */
+  flexible: boolean;
   status: OccStatus;
   attempt: number;
   reopened_at: string | null;

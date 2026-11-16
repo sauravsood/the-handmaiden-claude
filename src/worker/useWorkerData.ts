@@ -6,7 +6,7 @@ import { flushPending, pendingList } from '../lib/offline';
 import { must, supabase } from '../lib/supabase';
 import type { Comment, Occurrence, TaskFull } from '../lib/types';
 
-/** Today's and overdue tasks for the signed-in worker, kept fresh. */
+/** Today's, overdue and "any day this week/month" tasks for the signed-in worker, kept fresh. */
 export function useWorkerData() {
   const { member, household } = useMe();
   const today = todayIn(household.timezone);
@@ -22,7 +22,7 @@ export function useWorkerData() {
       await flushPending();
       await refreshOccurrences();
       const list = must(await supabase.from('occurrences').select('*').eq('worker_id', member.id)
-        .or(`and(status.eq.open,due_date.lte.${today}),and(status.eq.done,due_date.eq.${today}),and(status.eq.done,done_at.gte.${new Date(Date.now() - 12 * 3600_000).toISOString()})`)) as Occurrence[];
+        .or(`and(status.eq.open,due_date.lte.${today}),and(status.eq.open,flexible.is.true),and(status.eq.done,due_date.eq.${today}),and(status.eq.done,done_at.gte.${new Date(Date.now() - 12 * 3600_000).toISOString()})`)) as Occurrence[];
       const ids = [...new Set(list.map((o) => o.task_id))];
       const ts = ids.length ? (must(await supabase.from('tasks').select(TASK_SELECT).in('id', ids)) as TaskFull[]) : [];
       for (const t of ts) { t.task_media.sort((a, b) => a.position - b.position); t.task_steps.sort((a, b) => a.position - b.position); }

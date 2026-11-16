@@ -182,6 +182,35 @@ begin
   if (select count(*) from public.activity where action = 'occurrence_flagged') <> 1 then raise exception 'activity'; end if;
 end $$;
 
+-- "This week" task: appears from today, due on its last day, never late before then.
+do $$
+declare
+  today date := public.household_today(public.my_household_id());
+  tid uuid;
+  o public.occurrences;
+begin
+  insert into public.tasks (household_id, worker_id, title, schedule_kind, flexible, starts_on, due_date)
+  values (public.my_household_id(), '10000000-0000-0000-0000-000000000002', 'Clean windows', 'once', true, today, today + 5)
+  returning id into tid;
+  perform public.refresh_occurrences();
+  select * into o from public.occurrences where task_id = tid;
+  if o.id is null or o.due_date <> today + 5 or not o.flexible then raise exception 'flexible occurrence not created early'; end if;
+  update public.tasks set due_date = today + 9, edited_at = now() where id = tid;
+  perform public.refresh_occurrences();
+  if (select count(*) from public.occurrences where task_id = tid) <> 1 then raise exception 'flexible task duplicated on edit'; end if;
+  if (select due_date from public.occurrences where task_id = tid) <> today + 9 then raise exception 'occurrence did not move'; end if;
+  o := public.complete_occurrence(o.id);
+  if o.done_late then raise exception 'flexible task marked late'; end if;
+  if public.refresh_occurrences() <> 0 then raise exception 'flexible task came back after done'; end if;
+
+  -- A plain one-off set for a later day stays hidden until then.
+  insert into public.tasks (household_id, worker_id, title, schedule_kind, due_date)
+  values (public.my_household_id(), '10000000-0000-0000-0000-000000000002', 'Polish brass', 'once', today + 3)
+  returning id into tid;
+  perform public.refresh_occurrences();
+  if exists (select 1 from public.occurrences where task_id = tid) then raise exception 'plain one-off shown early'; end if;
+end $$;
+
 -- A stranger with no household sees nothing.
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
 do $$ begin

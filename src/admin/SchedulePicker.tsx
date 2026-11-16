@@ -1,4 +1,4 @@
-import { addDays, describeSchedule, dueDatesBetween, formatDay, monthName, nextFloatingDate, weekdayName } from '../lib/schedule';
+import { addDays, describeSchedule, dueDatesBetween, endOfMonth, endOfWeek, formatDay, monthName, nextFloatingDate, weekdayName } from '../lib/schedule';
 import type { Freq, Schedule } from '../lib/types';
 
 const PRESETS: { label: string; apply: (s: Schedule) => Partial<Schedule> }[] = [
@@ -18,6 +18,10 @@ function toggle(list: number[] | null, v: number): number[] {
 export function SchedulePicker({ value, onChange, today }: { value: Schedule; onChange: (s: Schedule) => void; today: string }) {
   const s = value;
   const set = (p: Partial<Schedule>) => onChange({ ...s, ...p });
+  // Which quick choice the one-off matches, if any. A week ending on the
+  // month's last day counts as "This week".
+  const quick = s.schedule_kind !== 'once' || !s.flexible ? null
+    : s.due_date === endOfWeek(today) ? 'week' : s.due_date === endOfMonth(today) ? 'month' : 'custom';
   const preview = s.schedule_kind === 'repeat'
     ? s.repeat_from === 'completion'
       ? [s.starts_on, nextFloatingDate(s, s.starts_on)]
@@ -28,13 +32,26 @@ export function SchedulePicker({ value, onChange, today }: { value: Schedule; on
     <div className="stack">
       <div className="chips" role="radiogroup" aria-label="How often">
         <button type="button" className={`chip${s.schedule_kind === 'repeat' ? ' on' : ''}`} onClick={() => set({ schedule_kind: 'repeat' })}>Repeats</button>
-        <button type="button" className={`chip${s.schedule_kind === 'once' ? ' on' : ''}`} onClick={() => set({ schedule_kind: 'once', due_date: s.due_date ?? today })}>One-off</button>
+        <button type="button" className={`chip${s.schedule_kind === 'once' && (quick === null || quick === 'custom') ? ' on' : ''}`}
+          onClick={() => set({ schedule_kind: 'once', flexible: false, due_date: s.due_date && s.due_date >= today ? s.due_date : today })}>One-off</button>
+        <button type="button" className={`chip${quick === 'week' ? ' on' : ''}`}
+          onClick={() => set({ schedule_kind: 'once', flexible: true, starts_on: today, due_date: endOfWeek(today) })}>This week</button>
+        <button type="button" className={`chip${quick === 'month' ? ' on' : ''}`}
+          onClick={() => set({ schedule_kind: 'once', flexible: true, starts_on: today, due_date: endOfMonth(today) })}>This month</button>
       </div>
 
       {s.schedule_kind === 'once' ? (
-        <label className="field"><span>Date</span>
-          <input id="sch-date" type="date" required value={s.due_date ?? ''} onChange={(e) => set({ due_date: e.target.value })} />
-        </label>
+        <>
+          <label className="field"><span>{s.flexible ? 'Any day until' : 'Date'}</span>
+            <input id="sch-date" type="date" required min={s.flexible ? today : undefined} value={s.due_date ?? ''}
+              onChange={(e) => set({ due_date: e.target.value })} />
+          </label>
+          <label className="check">
+            <input id="sch-flexible" type="checkbox" checked={s.flexible}
+              onChange={(e) => set({ flexible: e.target.checked, starts_on: today })} />
+            <span>Show it every day until this date, after the day's other tasks are done</span>
+          </label>
+        </>
       ) : (
         <>
           <div className="chips" aria-label="Presets">

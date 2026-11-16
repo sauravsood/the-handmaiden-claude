@@ -36,6 +36,17 @@ function daysInMonth(y: number, m: number): number {
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
 
+/** Last day (Sunday) of the Monday-to-Sunday week containing s. */
+export function endOfWeek(s: string): string {
+  return addDays(s, 7 - isoWeekday(s));
+}
+
+/** Last day of the month containing s. */
+export function endOfMonth(s: string): string {
+  const [y, m] = s.split('-').map(Number);
+  return `${s.slice(0, 8)}${String(daysInMonth(y, m)).padStart(2, '0')}`;
+}
+
 const nonEmpty = (a: number[] | null | undefined): a is number[] => !!a && a.length > 0;
 
 export function isDueOn(t: Schedule, d: string): boolean {
@@ -120,7 +131,10 @@ export function formatDay(s: string): string {
 
 /** Plain-English summary, e.g. "Every 2 weeks on Mon, Thu". */
 export function describeSchedule(t: Schedule): string {
-  if (t.schedule_kind === 'once') return t.due_date ? `Once on ${formatDay(t.due_date)}` : 'Once';
+  if (t.schedule_kind === 'once') {
+    if (!t.due_date) return 'Once';
+    return t.flexible ? `Once, any day until ${formatDay(t.due_date)}` : `Once on ${formatDay(t.due_date)}`;
+  }
   const n = t.interval;
   const unit = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' }[t.freq ?? 'daily'];
   let s = n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`;

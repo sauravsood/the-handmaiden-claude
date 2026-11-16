@@ -4,7 +4,7 @@ import { describeSchedule, dueDatesBetween, isDueOn, nextFloatingDate } from '..
 import type { Schedule } from '../src/lib/types';
 
 const base: Schedule = {
-  schedule_kind: 'repeat', due_date: null, freq: 'daily', interval: 1, by_weekday: null,
+  schedule_kind: 'repeat', due_date: null, flexible: false, freq: 'daily', interval: 1, by_weekday: null,
   by_monthday: null, by_month: null, repeat_from: 'schedule', starts_on: '2026-11-02', ends_on: null,
 };
 
@@ -85,5 +85,19 @@ describe('parity with SQL', () => {
     cases.forEach((c, i) => {
       expect(dueDatesBetween(c, '2026-01-01', '2027-12-31').join(','), JSON.stringify(c)).toBe(fromSql.get(String(i)) ?? '');
     });
+  });
+});
+
+describe('this week / this month', () => {
+  it('ends the week on Sunday and the month on its last day', async () => {
+    const { endOfWeek, endOfMonth } = await import('../src/lib/schedule');
+    expect(endOfWeek('2026-11-16')).toBe('2026-11-22');
+    expect(endOfWeek('2026-11-22')).toBe('2026-11-22');
+    expect(endOfMonth('2026-11-16')).toBe('2026-11-30');
+    expect(endOfMonth('2028-02-03')).toBe('2028-02-29');
+  });
+  it('describes a flexible one-off', () => {
+    expect(describeSchedule({ ...base, schedule_kind: 'once', flexible: true, due_date: '2026-11-22' }))
+      .toBe('Once, any day until Sun 22 Nov');
   });
 });

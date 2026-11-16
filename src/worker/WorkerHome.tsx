@@ -24,13 +24,19 @@ export function WorkerHome() {
 
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
-  const todo = occ.filter((o) => o.status === 'open').sort((a, b) => {
+  // "This week" / "This month" tasks wait below until today's are done; on
+  // their last day they join today's list.
+  const isLater = (o: Occurrence) => o.flexible && o.due_date > today;
+  const byOrder = (a: Occurrence, b: Occurrence) => {
     const ta = tasks.get(a.task_id), tb = tasks.get(b.task_id);
     return Number(b.due_date < today) - Number(a.due_date < today)
       || (ta?.priority ?? 4) - (tb?.priority ?? 4)
       || SLOT_ORDER[ta?.time_slot ?? 'anytime'] - SLOT_ORDER[tb?.time_slot ?? 'anytime']
       || (ta?.exact_time ?? '').localeCompare(tb?.exact_time ?? '');
-  });
+  };
+  const todo = occ.filter((o) => o.status === 'open' && !isLater(o)).sort(byOrder);
+  const later = occ.filter((o) => o.status === 'open' && isLater(o))
+    .sort((a, b) => a.due_date.localeCompare(b.due_date) || byOrder(a, b));
   const done = occ.filter((o) => o.status === 'done').sort((a, b) => (b.done_at ?? '').localeCompare(a.done_at ?? ''));
 
   /** Completes a task. Tasks that need a photo open their page instead. */
@@ -95,7 +101,16 @@ export function WorkerHome() {
         </div>
       )}
       {data.loaded && todo.length === 0 && (
-        <div className="center-page" style={{ minHeight: 200 }}><span style={{ fontSize: 120 }} aria-label="All done">✅</span></div>
+        <div className="center-page" style={{ minHeight: later.length ? 140 : 200 }}><span style={{ fontSize: later.length ? 90 : 120 }} aria-label="All done">✅</span></div>
+      )}
+
+      {data.loaded && todo.length === 0 && later.length > 0 && (
+        <>
+          <div className="w-section" aria-label="Extra, when you have time"><span>🗓️</span></div>
+          <div className="w-grid">
+            {later.map((o) => <Tile key={o.id} o={o} t={tasks.get(o.task_id)} today={today} onOpen={() => nav(`/w/task/${o.id}`)} onTick={() => finish(o)} />)}
+          </div>
+        </>
       )}
 
       {done.length > 0 && (
