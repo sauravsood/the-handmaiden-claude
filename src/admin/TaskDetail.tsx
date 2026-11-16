@@ -61,8 +61,8 @@ export function TaskDetail() {
         </div>
       </div>
 
-      <div className="row" style={{ alignItems: 'flex-start', gap: 20 }}>
-        <div className="thumb" style={{ width: 200, height: 200, fontSize: 64 }}><Photo path={coverPath(t)} /></div>
+      <div className="media-row">
+        <div className="thumb" style={{ width: 200, height: 200, fontSize: 64, borderRadius: 16 }}><Photo path={coverPath(t)} /></div>
         <div className="stack grow" style={{ minWidth: 240 }}>
           <p style={{ whiteSpace: 'pre-wrap' }}>{t.description || <span className="muted">No description.</span>}</p>
           <div className="row">

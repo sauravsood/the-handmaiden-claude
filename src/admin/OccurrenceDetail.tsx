@@ -50,13 +50,13 @@ export function OccurrenceDetail() {
       </div>
 
       <div className="card stack">
-        <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
-          <div className="stack" style={{ gap: 4 }}>
+        <div className="media-row">
+          <div className="stack" style={{ gap: 6 }}>
             <small>Task</small>
             <div className="thumb" style={{ width: 160, height: 160, fontSize: 48 }}><Photo path={coverPath(t)} /></div>
           </div>
           {o.status === 'done' && (
-            <div className="stack" style={{ gap: 4 }}>
+            <div className="stack" style={{ gap: 6 }}>
               <small>Proof</small>
               <div className="thumb" style={{ width: 160, height: 160, fontSize: 32 }}>
                 {o.proof_photo_path ? <Photo path={o.proof_photo_path} /> : <span className="muted" style={{ fontSize: 13 }}>No photo</span>}
@@ -76,7 +76,7 @@ export function OccurrenceDetail() {
             {o.reviewed_at && <small>Reviewed by {byId.get(o.reviewed_by ?? '')?.display_name} {formatDateTime(o.reviewed_at, household.timezone)}</small>}
           </div>
         </div>
-        <div className="row">
+        <div className="actions">
           {o.status === 'done' && o.review_status !== 'approved' && <button className="primary" onClick={() => setAction('approve')}>✓ Approve</button>}
           {o.status === 'done' && o.review_status !== 'flagged' && <button className="danger" onClick={() => setAction('flag')}>⚑ Flag as unsatisfactory</button>}
           {o.status === 'done' && <button onClick={() => setAction('reopen')}>↺ Reopen and send back</button>}

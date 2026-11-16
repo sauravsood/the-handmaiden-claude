@@ -154,8 +154,8 @@ function ProfileMenu() {
   const { signOut } = useAuth();
   const [open, setOpen] = useState(false);
   return (
-    <div className="row">
-      <strong style={{ fontSize: 20 }}>{member.display_name}</strong>
+    <div className="w-menu">
+      <strong>{member.display_name}</strong>
       <button className="ghost" aria-label="Menu" onClick={() => setOpen(!open)}>⋯</button>
       {open && <button className="small" onClick={signOut}>Sign out</button>}
     </div>
