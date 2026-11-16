@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadMembers, loadOccurrences, loadTasks } from '../lib/data';
@@ -8,12 +8,14 @@ import { must, supabase } from '../lib/supabase';
 import { useAsync } from '../lib/useAsync';
 import type { Leave, Occurrence } from '../lib/types';
 import { Avatar, ErrorBox, Loading, Photo, PriorityPill, SLOT_ICON, StatusPill } from '../components/ui';
+import { doneByAdmin, MarkDoneDialog } from './MarkDoneDialog';
 
 const SLOT_ORDER: Record<string, number> = { morning: 0, afternoon: 1, evening: 2, anytime: 3 };
 
 export function TodayBoard() {
   const { household } = useMe();
   const today = todayIn(household.timezone);
+  const [marking, setMarking] = useState<Occurrence | null>(null);
   const d = useAsync(async () => {
     const [members, tasks, open, todays, leave] = await Promise.all([
       loadMembers(),
@@ -37,7 +39,8 @@ export function TodayBoard() {
   const workers = useMemo(() => (d.data?.members ?? []).filter((m) => m.role === 'worker' && m.active), [d.data]);
   if (d.loading && !d.data) return <Loading />;
   if (!d.data) return <ErrorBox error={d.error} />;
-  const { tasks, occ, leave } = d.data;
+  const { members, tasks, occ, leave } = d.data;
+  const nameOf = (id: string | null) => members.find((m) => m.id === id)?.display_name;
 
   const total = occ.filter((o) => o.due_date === today && o.status !== 'skipped').length;
   const done = occ.filter((o) => o.due_date === today && o.status === 'done').length;
@@ -82,21 +85,28 @@ export function TodayBoard() {
                   {mine.map((o) => {
                     const t = tasks.get(o.task_id);
                     return (
-                      <Link key={o.id} to={`/admin/occurrences/${o.id}`} className={`item prio-${t?.priority ?? 4}`}>
-                        <div className="thumb"><Photo path={o.proof_photo_path ?? (t ? coverPath(t) : null)} /></div>
-                        <div className="grow">
-                          <div className="title">{t?.title ?? 'Archived task'}</div>
-                          <small>
-                            {SLOT_ICON[t?.time_slot ?? 'anytime']}{' '}
-                            {[
-                              o.done_at ? `Done ${formatTime(o.done_at, household.timezone)}` : o.due_date < today ? `Due ${formatDay(o.due_date)}` : '',
-                              o.attempt > 1 && o.status === 'open' ? 'Sent back for a redo' : '',
-                            ].filter(Boolean).join(' · ')}
-                          </small>
-                        </div>
-                        <PriorityPill p={t?.priority ?? 4} />
-                        <StatusPill o={o} today={today} />
-                      </Link>
+                      <div key={o.id} className={`item prio-${t?.priority ?? 4}`}>
+                        <Link to={`/admin/occurrences/${o.id}`} className="item-link">
+                          <div className="thumb"><Photo path={o.proof_photo_path ?? (t ? coverPath(t) : null)} /></div>
+                          <div className="grow">
+                            <div className="title">{t?.title ?? 'Archived task'}</div>
+                            <small>
+                              {SLOT_ICON[t?.time_slot ?? 'anytime']}{' '}
+                              {[
+                                o.done_at ? `Done ${formatTime(o.done_at, household.timezone)}` : o.due_date < today ? `Due ${formatDay(o.due_date)}` : '',
+                                doneByAdmin(o) ? `Marked by ${nameOf(o.done_by) ?? 'admin'}` : '',
+                                o.attempt > 1 && o.status === 'open' ? 'Sent back for a redo' : '',
+                              ].filter(Boolean).join(' · ')}
+                            </small>
+                          </div>
+                          <PriorityPill p={t?.priority ?? 4} />
+                          <StatusPill o={o} today={today} />
+                        </Link>
+                        {(o.status === 'open' || o.status === 'missed') && (
+                          <button className="small tick" title="Mark as done" aria-label={`Mark ${t?.title ?? 'task'} as done`}
+                            onClick={() => setMarking(o)}>✓</button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -104,6 +114,10 @@ export function TodayBoard() {
             );
           })}
         </div>
+      )}
+      {marking && (
+        <MarkDoneDialog o={marking} title={tasks.get(marking.task_id)?.title ?? 'Task'} workerName={nameOf(marking.worker_id)}
+          onClose={() => setMarking(null)} onDone={() => { setMarking(null); d.reload(); }} />
       )}
     </div>
   );
