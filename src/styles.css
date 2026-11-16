@@ -155,7 +155,12 @@ textarea { min-height: 88px; resize: vertical; }
 input[type='checkbox'], input[type='radio'] {
   width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--accent); box-shadow: none;
 }
-input[type='date'], input[type='time'] { min-height: 42px; }
+/* iOS Safari gives date/time inputs a fixed native width that ignores width: 100%
+   and spills out of cards; drop the native look so they size like other inputs. */
+input[type='date'], input[type='time'] {
+  -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-height: 42px; text-align: left;
+}
+input::-webkit-date-and-time-value { text-align: left; min-height: 1.5em; }
 label.field { display: flex; flex-direction: column; gap: 6px; font-weight: 500; }
 label.field > span { font-size: 13px; color: var(--muted); font-weight: 550; }
 label.check { display: inline-flex; gap: 10px; align-items: flex-start; cursor: pointer; line-height: 1.45; }
