@@ -129,7 +129,7 @@ export function TaskEditor() {
 
       <section className="card stack">
         <h2>What</h2>
-        <div className="row" style={{ alignItems: 'flex-start', gap: 16 }}>
+        <div className="media-row">
           <div className="stack" style={{ gap: 6 }}>
             <small>Cover photo (what the worker sees)</small>
             <PhotoInput onPick={([f]) => set({ cover: toRef(f) })}>

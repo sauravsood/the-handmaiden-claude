@@ -27,7 +27,7 @@ export function AdminLogin() {
   return (
     <div className="center-page">
       <form className="card auth-card stack" onSubmit={send}>
-        <h1>Hand<span style={{ color: 'var(--accent)' }}>maiden</span></h1>
+        <h1 className="brand"><img src="/icon.svg" alt="" /><div>Hand<span>maiden</span></div></h1>
         <p className="muted">Sign in to manage your household's tasks.</p>
         {sent ? (
           <div className="notice">We sent a sign-in link to <strong>{email}</strong>. Open it on this device.</div>

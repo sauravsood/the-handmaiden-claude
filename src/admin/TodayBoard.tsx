@@ -74,8 +74,8 @@ export function TodayBoard() {
                 <header>
                   <Avatar member={w} />
                   <Link to={`/admin/people/${w.id}`}><strong>{w.display_name}</strong></Link>
-                  <span className="muted">{left ? `${left} left` : 'all done'}</span>
                   {away && <span className="pill warn">On leave until {formatDay(away.to_date)}</span>}
+                  <span className={`pill left ${left ? '' : 'good'}`}>{left ? `${left} left` : 'All done'}</span>
                 </header>
                 <div className="list">
                   {mine.length === 0 && <div className="empty">Nothing today.</div>}
@@ -88,8 +88,10 @@ export function TodayBoard() {
                           <div className="title">{t?.title ?? 'Archived task'}</div>
                           <small>
                             {SLOT_ICON[t?.time_slot ?? 'anytime']}{' '}
-                            {o.done_at ? `done ${formatTime(o.done_at, household.timezone)}` : o.due_date < today ? `due ${formatDay(o.due_date)}` : ''}
-                            {o.attempt > 1 && o.status === 'open' ? ' · redo' : ''}
+                            {[
+                              o.done_at ? `Done ${formatTime(o.done_at, household.timezone)}` : o.due_date < today ? `Due ${formatDay(o.due_date)}` : '',
+                              o.attempt > 1 && o.status === 'open' ? 'Sent back for a redo' : '',
+                            ].filter(Boolean).join(' · ')}
                           </small>
                         </div>
                         <PriorityPill p={t?.priority ?? 4} />
