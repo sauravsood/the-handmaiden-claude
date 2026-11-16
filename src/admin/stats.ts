@@ -15,6 +15,8 @@ export interface Stats {
   approved: number;
   reopened: number;
   withPhoto: number;
+  /** Done items an admin marked done rather than the worker. */
+  byAdmin: number;
   completionRate: number | null;
   onTimeRate: number | null;
   avgDelayDays: number | null;
@@ -30,7 +32,7 @@ export function isCountable(o: Occurrence, today: string) {
 export function computeStats(occ: Occurrence[], today: string, tz: string): Stats {
   const s: Stats = {
     due: 0, done: 0, onTime: 0, late: 0, missed: 0, overdue: 0, skipped: 0, flagged: 0, approved: 0,
-    reopened: 0, withPhoto: 0, completionRate: null, onTimeRate: null, avgDelayDays: null, streak: 0,
+    reopened: 0, withPhoto: 0, byAdmin: 0, completionRate: null, onTimeRate: null, avgDelayDays: null, streak: 0,
     byHour: Array(24).fill(0),
   };
   let delaySum = 0;
@@ -48,7 +50,9 @@ export function computeStats(occ: Occurrence[], today: string, tz: string): Stat
       if (o.review_status === 'flagged') s.flagged++;
       if (o.review_status === 'approved') s.approved++;
       if (o.proof_photo_path) s.withPhoto++;
-      if (o.done_at) s.byHour[localHourOf(o.done_at, tz)]++;
+      // An admin's tick says when the admin noticed, not when the work happened.
+      if (o.done_by && o.done_by !== o.worker_id) s.byAdmin++;
+      else if (o.done_at) s.byHour[localHourOf(o.done_at, tz)]++;
     } else if (o.status === 'missed') s.missed++;
     else s.overdue++;
   }
