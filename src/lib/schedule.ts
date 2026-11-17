@@ -106,6 +106,34 @@ export function nextFloatingDate(t: Schedule, from: string): string {
   }
 }
 
+/**
+ * Expected next due date of a "repeat from completion" task, after today.
+ * The real next occurrence is only created when the current one is ticked, so
+ * this assumes the current one gets done today. `waiting` is true when that
+ * is still an assumption (the current one is open). Null when the task has
+ * ended, or a future occurrence already exists.
+ */
+export function nextFloatingAfter(
+  t: Schedule, occs: { due_date: string; status: string; done_at: string | null }[], today: string,
+  /** Local date of a timestamp in the household's time zone. */
+  dayOf: (ts: string) => string = (ts) => ts.slice(0, 10),
+): { date: string; waiting: boolean } | null {
+  if (t.schedule_kind !== 'repeat' || t.repeat_from !== 'completion') return null;
+  if (occs.some((o) => o.due_date > today && o.status === 'open')) return null;
+  const latest = [...occs].sort((a, b) => b.due_date.localeCompare(a.due_date))[0];
+  let date: string;
+  let waiting = false;
+  if (!latest) date = t.starts_on > today ? t.starts_on : nextFloatingDate(t, today);
+  else if (latest.status === 'open') { date = nextFloatingDate(t, today); waiting = true; }
+  else {
+    const doneDay = latest.done_at ? dayOf(latest.done_at) : latest.due_date;
+    date = nextFloatingDate(t, doneDay);
+    if (date <= today) { date = nextFloatingDate(t, today); waiting = true; }
+  }
+  if (t.ends_on && date > t.ends_on) return null;
+  return { date, waiting };
+}
+
 /** Fixed-schedule due dates in [from, to]. Floating tasks are not projected. */
 export function dueDatesBetween(t: Schedule, from: string, to: string): string[] {
   const out: string[] = [];

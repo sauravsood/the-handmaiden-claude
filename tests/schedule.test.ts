@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { describeSchedule, dueDatesBetween, isDueOn, nextFloatingDate } from '../src/lib/schedule';
+import { describeSchedule, dueDatesBetween, isDueOn, nextFloatingAfter, nextFloatingDate } from '../src/lib/schedule';
 import type { Schedule } from '../src/lib/types';
 
 const base: Schedule = {
@@ -99,5 +99,22 @@ describe('this week / this month', () => {
   it('describes a flexible one-off', () => {
     expect(describeSchedule({ ...base, schedule_kind: 'once', flexible: true, due_date: '2026-11-22' }))
       .toBe('Once, any day until Sun 22 Nov');
+  });
+});
+
+describe('nextFloatingAfter', () => {
+  const f: Schedule = { ...base, repeat_from: 'completion', starts_on: '2026-11-10' };
+  const today = '2026-11-17';
+  it('expects tomorrow while today is still open', () => {
+    expect(nextFloatingAfter(f, [{ due_date: today, status: 'open', done_at: null }], today)).toEqual({ date: '2026-11-18', waiting: true });
+  });
+  it('uses the completion day once done', () => {
+    expect(nextFloatingAfter({ ...f, interval: 3 }, [{ due_date: '2026-11-16', status: 'done', done_at: '2026-11-16T10:00:00Z' }], today))
+      .toEqual({ date: '2026-11-19', waiting: false });
+  });
+  it('skips tasks with a future occurrence, fixed schedules and ended tasks', () => {
+    expect(nextFloatingAfter(f, [{ due_date: '2026-11-18', status: 'open', done_at: null }], today)).toBeNull();
+    expect(nextFloatingAfter(base, [], today)).toBeNull();
+    expect(nextFloatingAfter({ ...f, ends_on: today }, [], today)).toBeNull();
   });
 });
