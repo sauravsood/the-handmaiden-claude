@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadLabels, loadMembers, loadOccurrences, loadTasks, restoreTask } from '../lib/data';
-import { addDays, todayIn } from '../lib/dates';
-import { describeSchedule, dueDatesBetween, formatDay } from '../lib/schedule';
+import { addDays, localDateOf, todayIn } from '../lib/dates';
+import { describeSchedule, dueDatesBetween, formatDay, nextFloatingAfter } from '../lib/schedule';
 import { errorText, supabase } from '../lib/supabase';
 import { useAsync } from '../lib/useAsync';
 import type { Member, Occurrence, TaskFull } from '../lib/types';
@@ -15,7 +15,7 @@ type Tab = 'all' | 'upcoming' | 'overdue' | 'archived';
 export function TasksPage() {
   const { household } = useMe();
   const today = todayIn(household.timezone);
-  const [tab, setTab] = useState<Tab>('all');
+  const [tab, setTab] = useState<Tab>('upcoming');
   const [worker, setWorker] = useState('');
   const [label, setLabel] = useState('');
   const [prio, setPrio] = useState('');
@@ -31,11 +31,11 @@ export function TasksPage() {
   );
   // For the status column: every open occurrence, plus the last 90 days of the rest.
   const recent = useAsync(
-    () => (tab === 'all'
+    () => (tab === 'all' || tab === 'upcoming'
       ? Promise.all([loadOccurrences({ status: ['open'] }), loadOccurrences({ from: addDays(today, -90), to: today })])
         .then(([a, b]) => [...new Map([...a, ...b].map((o) => [o.id, o])).values()])
       : Promise.resolve([] as Occurrence[])),
-    [tab === 'all', today],
+    [tab === 'all' || tab === 'upcoming', today],
   );
 
   const members = base.data?.[0] ?? [];
@@ -48,11 +48,15 @@ export function TasksPage() {
     (!label || t.task_labels.some((l) => l.label_id === label)) &&
     (!prio || t.priority === Number(prio)) &&
     (!q || `${t.title} ${t.description}`.toLowerCase().includes(q.toLowerCase()));
-  const statusById = useMemo(() => {
+  const occByTask = useMemo(() => {
     const byTask = new Map<string, Occurrence[]>();
     for (const o of recent.data ?? []) byTask.set(o.task_id, [...(byTask.get(o.task_id) ?? []), o]);
-    return new Map((tasks.data ?? []).map((t) => [t.id, taskStatus(t, byTask.get(t.id) ?? [], today)]));
-  }, [recent.data, tasks.data, today]);
+    return byTask;
+  }, [recent.data]);
+  const statusById = useMemo(
+    () => new Map((tasks.data ?? []).map((t) => [t.id, taskStatus(t, occByTask.get(t.id) ?? [], today)])),
+    [occByTask, tasks.data, today],
+  );
   const withStatus = tab === 'all' && !!recent.data;
   const filtered = (tasks.data ?? []).filter(matches);
   const shown = withStatus && status ? filtered.filter((t) => statusById.get(t.id)?.key === status) : filtered;
@@ -66,7 +70,7 @@ export function TasksPage() {
         <Link className="btn primary" to="/admin/tasks/new">＋ New task</Link>
       </div>
       <div className="tabs" role="tablist">
-        {(['all', 'upcoming', 'overdue', 'archived'] as Tab[]).map((t) => (
+        {(['upcoming', 'all', 'overdue', 'archived'] as Tab[]).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
             {{ all: 'All tasks', upcoming: 'Upcoming', overdue: 'Overdue', archived: 'Archived' }[t]}
           </button>
@@ -102,7 +106,7 @@ export function TasksPage() {
             statusById={withStatus ? statusById : undefined} filtered={!!status && withStatus} />
         ) : tab === 'upcoming' ? (
           <Upcoming tasks={shown} occ={(occ.data ?? []).filter((o) => taskById.has(o.task_id) && matches(taskById.get(o.task_id)!))}
-            byId={byId} taskById={taskById} today={today} />
+            byId={byId} taskById={taskById} today={today} occByTask={recent.data ? occByTask : undefined} tz={household.timezone} />
         ) : (
           <Overdue occ={(occ.data ?? []).filter((o) => taskById.has(o.task_id) && matches(taskById.get(o.task_id)!))}
             byId={byId} taskById={taskById} onChange={occ.reload} />
@@ -160,13 +164,22 @@ function TaskList({ tasks, byId, labels, archived, onChange, statusById, filtere
   );
 }
 
-function Upcoming({ tasks, occ, byId, taskById, today }: {
+function Upcoming({ tasks, occ, byId, taskById, today, occByTask, tz }: {
   tasks: TaskFull[]; occ: Occurrence[]; byId: Map<string, Member>; taskById: Map<string, TaskFull>; today: string;
+  occByTask?: Map<string, Occurrence[]>; tz: string;
 }) {
   const from = addDays(today, 1);
   const to = addDays(today, 14);
   const days = new Map<string, TaskFull[]>();
+  // "Repeat after it's done" tasks: the next date depends on when the current one is ticked.
+  const expected = new Map<string, string>();
   for (const t of tasks) for (const d of dueDatesBetween(t, from, to)) days.set(d, [...(days.get(d) ?? []), t]);
+  if (occByTask) for (const t of tasks) {
+    const n = nextFloatingAfter(t, occByTask.get(t.id) ?? [], today, (ts) => localDateOf(ts, tz));
+    if (!n || n.date > to) continue;
+    days.set(n.date, [...(days.get(n.date) ?? []), t]);
+    if (n.waiting) expected.set(`${n.date}:${t.id}`, 'Expected, once the current one is done');
+  }
   for (const o of occ) if (o.due_date <= to) {
     const t = taskById.get(o.task_id)!;
     if (!days.get(o.due_date)?.includes(t)) days.set(o.due_date, [...(days.get(o.due_date) ?? []), t]);
@@ -179,7 +192,11 @@ function Upcoming({ tasks, occ, byId, taskById, today }: {
         <div key={d} className="stack" style={{ gap: 6 }}>
           <h3>{formatDay(d)}</h3>
           <div className="list">
-            {ts.sort((a, b) => a.priority - b.priority).map((t) => <TaskRow key={t.id} t={t} worker={byId.get(t.worker_id)} />)}
+            {ts.sort((a, b) => a.priority - b.priority).map((t) => {
+              const note = expected.get(`${d}:${t.id}`);
+              return <TaskRow key={t.id} t={t} worker={byId.get(t.worker_id)}
+                sub={note ? <>{SLOT_ICON[t.time_slot]} {describeSchedule(t)} · {note}</> : undefined} />;
+            })}
           </div>
         </div>
       ))}
