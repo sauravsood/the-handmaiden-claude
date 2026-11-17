@@ -10,6 +10,7 @@ import { useAsync } from '../lib/useAsync';
 import type { Invite, Member } from '../lib/types';
 import { Avatar, ErrorBox, Loading, Modal, PhotoInput } from '../components/ui';
 import { PicturePin, pinIcons } from '../components/PicturePin';
+import { LANG_NAMES, type Lang } from '../lib/lang';
 
 export function PeoplePage() {
   const { member: me, household } = useMe();
@@ -111,6 +112,7 @@ function AddWorker({ onClose, onCreated }: { onClose: () => void; onCreated: (w:
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [pin, setPin] = useState<string | null>(null);
+  const [language, setLanguage] = useState<Lang | ''>('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // One id per dialog: if the connection drops and the admin taps again,
@@ -128,7 +130,7 @@ function AddWorker({ onClose, onCreated }: { onClose: () => void; onCreated: (w:
       const res = await fetch('/api/workers', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${s.session?.access_token}` },
-        body: JSON.stringify({ display_name: name.trim(), photo_path, pin, request_id: requestId }),
+        body: JSON.stringify({ display_name: name.trim(), photo_path, pin, request_id: requestId, language: language || null }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `Could not add worker (${res.status})`);
@@ -151,6 +153,7 @@ function AddWorker({ onClose, onCreated }: { onClose: () => void; onCreated: (w:
           <input id="aw-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Asha" />
         </label>
       </div>
+      <LanguageField value={language} onChange={setLanguage} />
       <div className="stack" style={{ gap: 6 }}>
         <small>Picture code: tap 4 pictures. The worker taps the same 4 to sign in on a new phone.</small>
         {pin ? (
@@ -165,6 +168,19 @@ function AddWorker({ onClose, onCreated }: { onClose: () => void; onCreated: (w:
         <button onClick={onClose}>Cancel</button>
       </div>
     </Modal>
+  );
+}
+
+/** The language a worker hears tasks in. Empty: read as the admin typed them. */
+export function LanguageField({ value, onChange }: { value: Lang | ''; onChange: (v: Lang | '') => void }) {
+  return (
+    <label className="field"><span>Language for listening to tasks</span>
+      <select id="aw-lang" value={value} onChange={(e) => onChange(e.target.value as Lang | '')}>
+        <option value="">Same as the task text (not translated)</option>
+        {(Object.keys(LANG_NAMES) as Lang[]).map((l) => <option key={l} value={l}>{LANG_NAMES[l]}</option>)}
+      </select>
+      <small>Tasks are translated into this language when the worker taps 🔊. You can change it later on the worker's page.</small>
+    </label>
   );
 }
 

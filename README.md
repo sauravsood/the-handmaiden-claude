@@ -15,13 +15,14 @@ A household task app with two sides on one web address:
 - Review: approve or flag a completion, comment (with photos), create a linked follow-up task, or reopen and send it back with updated requirements. Earlier attempts and earlier versions of the task are kept, like issue history in Jira.
 - Today board, upcoming and overdue lists, skip, worker leave, activity log.
 - Analytics: completion and on-time rates, missed and flagged counts, redos, average delay, streaks, workload, time of day, task health, proof photo gallery, CSV export.
+- Read aloud: a 🔊 button on each task photo reads the task to the worker. Each worker can have a language (Hindi or English, set when adding them or on their page); task text is translated into it with Cloudflare Workers AI. With no language set, tasks are read as typed.
 - Worker app installs to the home screen, keeps working offline and sends ticks when the signal returns.
 
 ## Stack
 
 - React + TypeScript + Vite, hosted on **Cloudflare Pages**.
 - **Supabase** for Postgres (with row-level security), auth, photo storage and live updates.
-- Two Cloudflare Pages Functions (`functions/api`) that need the Supabase service key: adding a worker and signing a worker in.
+- Cloudflare Pages Functions (`functions/api`): adding a worker and signing a worker in (these need the Supabase service key), and translating task text for read-aloud (Workers AI binding `AI` in `wrangler.toml`).
 
 ## Development
 

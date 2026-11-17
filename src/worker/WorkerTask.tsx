@@ -4,6 +4,8 @@ import { coverPath } from '../lib/data';
 import type { Comment, Occurrence, TaskFull } from '../lib/types';
 import { Photo, PhotoInput, SLOT_ICON } from '../components/ui';
 import { useSignedUrl } from '../lib/media';
+import { canSpeak, speakTask, useSpeaking } from '../lib/speech';
+import { useMe } from '../auth';
 
 export function WorkerTask({ o, t, today, comments, queued, onDone, onBack }: {
   o: Occurrence; t: TaskFull; today: string; comments: Comment[]; queued: boolean;
@@ -29,7 +31,10 @@ export function WorkerTask({ o, t, today, comments, queued, onDone, onBack }: {
           {o.due_date < today && !isDone && <span aria-label="Late">⏰</span>}
           {queued && <span aria-label="Waiting for internet">📵</span>}
         </div>
-        <button className="w-back" onClick={() => setShowText(!showText)} aria-label="Show words" aria-pressed={showText}>📝</button>
+        <div className="row" style={{ gap: 8 }}>
+          {canSpeak && <SpeakButton t={t} className="w-back" />}
+          <button className="w-back" onClick={() => setShowText(!showText)} aria-label="Show words" aria-pressed={showText}>📝</button>
+        </div>
       </div>
 
       <div className="w-detail">
@@ -108,6 +113,19 @@ export function WorkerTask({ o, t, today, comments, queued, onDone, onBack }: {
 
       {zoom && <Zoom path={zoom} onClose={() => setZoom(null)} />}
     </div>
+  );
+}
+
+/** Reads the task aloud in the worker's language. Tap again to stop. */
+export function SpeakButton({ t, className }: { t: TaskFull; className: string }) {
+  const { member } = useMe();
+  const speaking = useSpeaking() === t.id;
+  return (
+    <button className={`${className}${speaking ? ' speaking' : ''}`} aria-pressed={speaking}
+      aria-label={speaking ? 'Stop' : 'Listen'}
+      onClick={(e) => { e.stopPropagation(); speakTask(t, member.language); }}>
+      🔊
+    </button>
   );
 }
 

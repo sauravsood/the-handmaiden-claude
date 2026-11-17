@@ -3,6 +3,7 @@ import { useMe } from '../auth';
 import { TASK_SELECT, refreshOccurrences } from '../lib/data';
 import { todayIn } from '../lib/dates';
 import { flushPending, pendingList } from '../lib/offline';
+import { prefetchTranslations } from '../lib/speech';
 import { must, supabase } from '../lib/supabase';
 import type { Comment, Occurrence, TaskFull } from '../lib/types';
 
@@ -33,6 +34,8 @@ export function useWorkerData() {
       setTasks(new Map(ts.map((t) => [t.id, t])));
       setComments(cs);
       try { localStorage.setItem('handmaiden-worker-cache', JSON.stringify({ list, ts, cs })); } catch { /* full */ }
+      // Translate in the background so the speaker answers at once, even offline later.
+      void prefetchTranslations(ts, member.language);
     } catch {
       // Offline: show the last list we had.
       try {
@@ -42,7 +45,7 @@ export function useWorkerData() {
     }
     setQueued(new Set((await pendingList()).map((p) => p.occurrenceId)));
     setLoaded(true);
-  }, [member.id, today]);
+  }, [member.id, member.language, today]);
 
   useEffect(() => {
     load();
