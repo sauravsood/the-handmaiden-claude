@@ -37,7 +37,6 @@ export function WorkerHome() {
   const todo = occ.filter((o) => o.status === 'open' && !isLater(o)).sort(byOrder);
   const later = occ.filter((o) => o.status === 'open' && isLater(o))
     .sort((a, b) => a.due_date.localeCompare(b.due_date) || byOrder(a, b));
-  const done = occ.filter((o) => o.status === 'done').sort((a, b) => (b.done_at ?? '').localeCompare(a.done_at ?? ''));
 
   /** Completes a task. Tasks that need a photo open their page instead. */
   const finish = async (o: Occurrence, photo: Blob | null = null, steps: string[] = []) => {
@@ -113,15 +112,7 @@ export function WorkerHome() {
         </>
       )}
 
-      {done.length > 0 && (
-        <>
-          <div className="w-section" aria-label="Done"><span>✅</span></div>
-          <div className="w-grid">
-            {done.map((o) => <Tile key={o.id} o={o} t={tasks.get(o.task_id)} today={today} queued={data.queued.has(o.id)} onOpen={() => nav(`/w/task/${o.id}`)} />)}
-          </div>
-        </>
-      )}
-
+      {/* Done tasks leave the screen; the undo toast is the way back for a mistaken tick. */}
       {celebrate && <div className="celebrate" aria-hidden="true"><span>✅</span></div>}
       {toast && (
         <div className="w-toast" role="status">
