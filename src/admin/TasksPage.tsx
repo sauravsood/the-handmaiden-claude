@@ -8,6 +8,7 @@ import { errorText, supabase } from '../lib/supabase';
 import { useAsync } from '../lib/useAsync';
 import type { Member, Occurrence, TaskFull } from '../lib/types';
 import { Avatar, ErrorBox, Loading, Photo, PriorityPill, SLOT_ICON } from '../components/ui';
+import { STATUS_FILTERS, taskStatus, type TaskStatus } from './taskStatus';
 
 type Tab = 'all' | 'upcoming' | 'overdue' | 'archived';
 
@@ -19,6 +20,7 @@ export function TasksPage() {
   const [label, setLabel] = useState('');
   const [prio, setPrio] = useState('');
   const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
 
   const base = useAsync(() => Promise.all([loadMembers(), loadLabels()]), []);
   const tasks = useAsync(() => loadTasks({ archived: tab === 'archived' }), [tab === 'archived']);
@@ -26,6 +28,14 @@ export function TasksPage() {
     () => (tab === 'overdue' ? loadOccurrences({ to: addDays(today, -1), status: ['open'] })
       : tab === 'upcoming' ? loadOccurrences({ from: addDays(today, 1), status: ['open'] }) : Promise.resolve([] as Occurrence[])),
     [tab, today],
+  );
+  // For the status column: every open occurrence, plus the last 90 days of the rest.
+  const recent = useAsync(
+    () => (tab === 'all'
+      ? Promise.all([loadOccurrences({ status: ['open'] }), loadOccurrences({ from: addDays(today, -90), to: today })])
+        .then(([a, b]) => [...new Map([...a, ...b].map((o) => [o.id, o])).values()])
+      : Promise.resolve([] as Occurrence[])),
+    [tab === 'all', today],
   );
 
   const members = base.data?.[0] ?? [];
@@ -38,7 +48,16 @@ export function TasksPage() {
     (!label || t.task_labels.some((l) => l.label_id === label)) &&
     (!prio || t.priority === Number(prio)) &&
     (!q || `${t.title} ${t.description}`.toLowerCase().includes(q.toLowerCase()));
-  const shown = (tasks.data ?? []).filter(matches);
+  const statusById = useMemo(() => {
+    const byTask = new Map<string, Occurrence[]>();
+    for (const o of recent.data ?? []) byTask.set(o.task_id, [...(byTask.get(o.task_id) ?? []), o]);
+    return new Map((tasks.data ?? []).map((t) => [t.id, taskStatus(t, byTask.get(t.id) ?? [], today)]));
+  }, [recent.data, tasks.data, today]);
+  const withStatus = tab === 'all' && !!recent.data;
+  const filtered = (tasks.data ?? []).filter(matches);
+  const shown = withStatus && status ? filtered.filter((t) => statusById.get(t.id)?.key === status) : filtered;
+  const counts = new Map<string, number>();
+  if (withStatus) for (const t of filtered) { const k = statusById.get(t.id)!.key; counts.set(k, (counts.get(k) ?? 0) + 1); }
 
   return (
     <div className="stack lg">
@@ -67,11 +86,20 @@ export function TasksPage() {
           <option value="">Any priority</option>
           {[1, 2, 3, 4].map((p) => <option key={p} value={p}>P{p}</option>)}
         </select>
+        {tab === 'all' && (
+          <select id="tf-status" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Any status</option>
+            {STATUS_FILTERS.filter((f) => counts.get(f.key) || f.key === status).map((f) => (
+              <option key={f.key} value={f.key}>{f.label} ({counts.get(f.key) ?? 0})</option>
+            ))}
+          </select>
+        )}
       </div>
-      <ErrorBox error={tasks.error ?? base.error ?? occ.error} />
+      <ErrorBox error={tasks.error ?? base.error ?? occ.error ?? recent.error} />
       {tasks.loading && !tasks.data ? <Loading /> :
         tab === 'all' || tab === 'archived' ? (
-          <TaskList tasks={shown} byId={byId} labels={labels} archived={tab === 'archived'} onChange={tasks.reload} />
+          <TaskList tasks={shown} byId={byId} labels={labels} archived={tab === 'archived'} onChange={tasks.reload}
+            statusById={withStatus ? statusById : undefined} filtered={!!status && withStatus} />
         ) : tab === 'upcoming' ? (
           <Upcoming tasks={shown} occ={(occ.data ?? []).filter((o) => taskById.has(o.task_id) && matches(taskById.get(o.task_id)!))}
             byId={byId} taskById={taskById} today={today} />
@@ -83,13 +111,21 @@ export function TasksPage() {
   );
 }
 
-function TaskRow({ t, worker, right, sub }: { t: TaskFull; worker?: Member; right?: React.ReactNode; sub?: React.ReactNode }) {
+function TaskRow({ t, worker, right, sub, status }: {
+  t: TaskFull; worker?: Member; right?: React.ReactNode; sub?: React.ReactNode; status?: TaskStatus;
+}) {
   return (
     <Link to={`/admin/tasks/${t.id}`} className={`item prio-${t.priority}`}>
       <div className="thumb"><Photo path={coverPath(t)} /></div>
       <div className="grow">
         <div className="title">{t.title} {t.photo_required && <span title="Photo required">📷</span>}</div>
         <small>{sub ?? <>{SLOT_ICON[t.time_slot]} {describeSchedule(t)}</>}</small>
+        {status && (
+          <div className="task-status">
+            <span className={`pill ${status.tone}`}>{status.label}</span>
+            {status.detail && <small>{status.detail}</small>}
+          </div>
+        )}
       </div>
       <PriorityPill p={t.priority} />
       {right}
@@ -98,15 +134,20 @@ function TaskRow({ t, worker, right, sub }: { t: TaskFull; worker?: Member; righ
   );
 }
 
-function TaskList({ tasks, byId, labels, archived, onChange }: {
+function TaskList({ tasks, byId, labels, archived, onChange, statusById, filtered }: {
   tasks: TaskFull[]; byId: Map<string, Member>; labels: { id: string; name: string }[]; archived: boolean; onChange: () => void;
+  statusById?: Map<string, TaskStatus>; filtered?: boolean;
 }) {
-  if (!tasks.length) return <div className="list"><div className="empty">{archived ? 'No archived tasks.' : 'No tasks yet. Create the first one.'}</div></div>;
+  if (!tasks.length) {
+    return <div className="list"><div className="empty">
+      {archived ? 'No archived tasks.' : filtered ? 'No tasks with this status.' : 'No tasks yet. Create the first one.'}
+    </div></div>;
+  }
   const labelName = new Map(labels.map((l) => [l.id, l.name]));
   return (
     <div className="list">
       {tasks.map((t) => (
-        <TaskRow key={t.id} t={t} worker={byId.get(t.worker_id)} right={
+        <TaskRow key={t.id} t={t} worker={byId.get(t.worker_id)} status={statusById?.get(t.id)} right={
           <>
             {t.task_labels.map((l) => <span key={l.label_id} className="pill">{labelName.get(l.label_id)}</span>)}
             {archived && (
