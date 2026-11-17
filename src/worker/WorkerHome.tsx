@@ -3,11 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth, useMe } from '../auth';
 import { coverPath } from '../lib/data';
 import { completeOccurrence } from '../lib/offline';
+import { canSpeak } from '../lib/speech';
 import { errorText, supabase } from '../lib/supabase';
 import type { Occurrence, TaskFull } from '../lib/types';
 import { Avatar, Photo, SLOT_ICON } from '../components/ui';
 import { useWorkerData } from './useWorkerData';
-import { WorkerTask } from './WorkerTask';
+import { SpeakButton, WorkerTask } from './WorkerTask';
 
 const SLOT_ORDER: Record<string, number> = { morning: 0, afternoon: 1, evening: 2, anytime: 3 };
 
@@ -140,7 +141,8 @@ function Tile({ o, t, today, queued, onOpen, onTick }: {
           {SLOT_ICON[t.time_slot] && <span className="badge">{SLOT_ICON[t.time_slot]}</span>}
           {o.attempt > 1 && !isDone && <span className="badge" aria-label="Do again">↺</span>}
         </span>
-        <span>
+        <span className="right">
+          {canSpeak && <SpeakButton t={t} className="badge speak" />}
           {t.priority === 1 && !isDone && <span className="badge" aria-label="Urgent">⭐</span>}
           {t.photo_required && !isDone && <span className="badge" aria-label="Needs photo">📷</span>}
           {queued && <span className="badge" aria-label="Waiting for internet">📵</span>}

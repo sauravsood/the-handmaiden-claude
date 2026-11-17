@@ -17,12 +17,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!admin) return json({ error: 'not_allowed' }, 403);
 
   const body = (await request.json().catch(() => ({}))) as {
-    display_name?: string; photo_path?: string | null; pin?: string; request_id?: string;
+    display_name?: string; photo_path?: string | null; pin?: string; request_id?: string; language?: string | null;
   };
   const name = body.display_name?.trim();
   if (!name) return json({ error: 'Name is required' }, 400);
   if (!body.pin || !PIN.test(body.pin)) return json({ error: 'Choose a picture code.' }, 400);
   const requestId = body.request_id && UUID.test(body.request_id) ? body.request_id.toLowerCase() : crypto.randomUUID();
+  const language = body.language === 'hi' || body.language === 'en' ? body.language : null;
   const photo = body.photo_path && body.photo_path.startsWith(`${admin.household_id}/`) ? body.photo_path : null;
 
   // Set the code as the calling admin, through the same checked function the app uses.
@@ -49,7 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const { data: member, error: mErr } = await db.from('members').insert({
     household_id: admin.household_id, user_id: created.user.id, role: 'worker',
-    display_name: name, photo_path: photo,
+    display_name: name, photo_path: photo, ...(language ? { language } : {}),
   }).select('*').single();
   if (mErr) {
     await db.auth.admin.deleteUser(created.user.id);

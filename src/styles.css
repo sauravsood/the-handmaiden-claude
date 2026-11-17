@@ -432,6 +432,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .w-tile .pic img { width: 100%; height: 100%; object-fit: cover; }
 .w-tile .badges { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; }
 .w-tile .badges > span { display: flex; gap: 6px; }
+.w-tile .badges > .right { flex-direction: column; align-items: flex-end; }
+/* Speaker: top right of the photo, big enough for a thumb. */
+.w-tile .badge.speak {
+  pointer-events: auto; border: 0; min-height: 0; font-size: 26px; padding: 9px 11px; cursor: pointer;
+}
+.w-tile .badge.speak:hover { background: rgb(255 255 255 / 0.94); }
+.speaking { animation: speak-pulse 1s ease-in-out infinite; box-shadow: 0 0 0 3px var(--accent) !important; }
+@keyframes speak-pulse { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .speaking { animation: none; } }
 .w-tile .badge {
   background: rgb(255 255 255 / 0.94); border-radius: 999px; font-size: 22px; line-height: 1; padding: 6px 9px; color: #222;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);

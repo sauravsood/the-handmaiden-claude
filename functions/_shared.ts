@@ -4,6 +4,8 @@ export interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   VITE_SUPABASE_ANON_KEY: string;
+  /** Workers AI, for translating task text (see wrangler.toml). */
+  AI: { run(model: string, input: unknown): Promise<unknown> };
 }
 
 export function serviceClient(env: Env): SupabaseClient {

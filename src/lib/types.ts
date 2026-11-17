@@ -19,6 +19,8 @@ export interface Member {
   email: string | null;
   photo_path: string | null;
   active: boolean;
+  /** Language tasks are read aloud in (workers). null: as the admin typed them. */
+  language?: 'en' | 'hi' | null;
   created_at: string;
 }
 

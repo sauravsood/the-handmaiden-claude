@@ -3,6 +3,10 @@ pages_build_output_dir = "dist"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Workers AI translates task text for the read-aloud button (functions/api/translate.ts).
+[ai]
+binding = "AI"
+
 # Cloudflare Pages uses this file as the source of truth for plain variables,
 # so they live here; values typed in the dashboard are replaced on each deploy.
 # The URL and anon key are public (they ship in the web page). Keep

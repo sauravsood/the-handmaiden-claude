@@ -10,7 +10,7 @@ import { useAsync } from '../lib/useAsync';
 import type { Leave, Member } from '../lib/types';
 import { Avatar, ErrorBox, Loading, Modal, PhotoInput } from '../components/ui';
 import { PicturePin } from '../components/PicturePin';
-import { WorkerQR } from './PeoplePage';
+import { LanguageField, WorkerQR } from './PeoplePage';
 import { computeStats, pct } from './stats';
 
 export function WorkerProfile() {
@@ -95,6 +95,11 @@ export function WorkerProfile() {
           <button onClick={() => update({ active: !w.active })}>{w.active ? 'Deactivate' : 'Reactivate'}</button>
         </div>
         {!w.active && <small>Inactive workers cannot sign in. Their tasks stay in history.</small>}
+      </section>
+
+      <section className="card stack">
+        <h2>Language</h2>
+        <LanguageField value={w.language ?? ''} onChange={(v) => update({ language: v || null })} />
       </section>
 
       <section className="card stack">
