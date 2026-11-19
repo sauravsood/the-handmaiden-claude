@@ -26,7 +26,7 @@ export function WorkerHome() {
 
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
-  // "This week" / "This month" tasks wait below until today's are done; on
+  // "This week" / "This month" tasks always show below today's, under 🗓️; on
   // their last day they join today's list.
   const isLater = (o: Occurrence) => o.flexible && o.due_date > today;
   const byOrder = (a: Occurrence, b: Occurrence) => {
@@ -105,7 +105,7 @@ export function WorkerHome() {
         <div className="center-page" style={{ minHeight: later.length ? 140 : 200 }}><span style={{ fontSize: later.length ? 90 : 120 }} aria-label="All done">✅</span></div>
       )}
 
-      {data.loaded && todo.length === 0 && later.length > 0 && (
+      {data.loaded && later.length > 0 && (
         <>
           <div className="w-section" aria-label="Extra, when you have time"><span>🗓️</span></div>
           <div className="w-grid">
