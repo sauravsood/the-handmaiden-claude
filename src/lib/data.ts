@@ -1,5 +1,6 @@
 import { must, supabase } from './supabase';
 import { uploadPhoto } from './media';
+import { warmTranslations } from './speech';
 import type { Label, Member, Occurrence, Schedule, Task, TaskFull, TimeSlot } from './types';
 
 export const TASK_SELECT = '*, task_media(*), task_steps(*), task_labels(label_id)';
@@ -164,6 +165,7 @@ export async function createTasks(householdId: string, me: Member, d: TaskDraft)
   const ids = created.map((r) => r.id);
   await writeChildren(ids, d, paths);
   await refreshOccurrences();
+  warmTranslations(ids);
   return ids;
 }
 
@@ -177,6 +179,7 @@ export async function updateTasks(householdId: string, taskIds: string[], d: Tas
   must(await supabase.from('tasks').update(workerId ? { ...cols, worker_id: workerId } : cols).in('id', taskIds));
   await writeChildren(taskIds, d, paths);
   await refreshOccurrences();
+  warmTranslations(taskIds);
 }
 
 export async function archiveTask(id: string) {

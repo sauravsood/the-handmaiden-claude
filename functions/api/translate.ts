@@ -1,6 +1,8 @@
-// POST /api/translate: { task_ids: string[], lang: 'en' | 'hi' }
+// POST /api/translate: { task_ids: string[], lang?: 'en' | 'hi' }
 // Returns each readable task's title and description in that language, so the
-// worker screen can read it aloud. Tasks are read as the calling user (row
+// worker screen can read it aloud. Without lang, each task goes into its
+// worker's language (the admin app calls it this way after saving a task, so
+// the translation is ready before the worker taps the speaker). Tasks are read as the calling user (row
 // level security applies), so a worker only gets their own tasks. Text already
 // in the target language is returned as is. Phones keep the results, keyed by
 // task version, so each task is translated once per edit.
@@ -23,19 +25,29 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const jwt = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
   if (!jwt) return json({ error: 'not_allowed' }, 401);
   const body = (await request.json().catch(() => ({}))) as { task_ids?: unknown; lang?: unknown };
-  const lang = body.lang === 'hi' || body.lang === 'en' ? body.lang : null;
+  const wanted = body.lang === 'hi' || body.lang === 'en' ? body.lang : null;
   const ids = Array.isArray(body.task_ids) ? body.task_ids.filter((x): x is string => typeof x === 'string').slice(0, 40) : [];
-  if (!lang || ids.length === 0) return json({ error: 'Send task_ids and lang (en or hi).' }, 400);
+  if (ids.length === 0) return json({ error: 'Send task_ids (and lang: en or hi).' }, 400);
 
   const { data, error } = await userClient(env, jwt).from('tasks')
-    .select('id, version, title, description').in('id', ids);
+    .select('id, version, title, description, worker:members!tasks_worker_id_fkey(language)').in('id', ids);
   if (error) return json({ error: error.message }, 403);
 
-  const out = await Promise.all((data as Row[]).map(async (t) => {
+  const out = await Promise.all((data as unknown as (Row & { worker: { language: Lang | null } | null })[]).map(async ({ worker, ...t }) => {
+    const lang = wanted ?? worker?.language ?? null;
+    if (!lang) return null;
     const source = detectLang(`${t.title} ${t.description}`);
     if (source === lang) return { ...t, lang };
+    // Translations are kept in Cloudflare's cache by task version, so each edit is translated once.
+    const key = new Request(`https://translate.handmaiden.invalid/${t.id}/${t.version}/${lang}/${encodeURIComponent(MODEL)}`);
+    const hit = await caches.default.match(key).catch(() => undefined);
+    if (hit) return { ...t, ...((await hit.json()) as { title: string; description: string }), lang };
     try {
-      return { ...t, ...(await translate(env, t, lang)), lang };
+      const tr = await translate(env, t, lang);
+      await caches.default.put(key, new Response(JSON.stringify(tr), {
+        headers: { 'content-type': 'application/json', 'cache-control': 'max-age=31536000' },
+      })).catch(() => undefined);
+      return { ...t, ...tr, lang };
     } catch {
       return null; // the phone reads the original text and asks again later
     }
