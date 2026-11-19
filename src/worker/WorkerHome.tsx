@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth, useMe } from '../auth';
 import { coverPath } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import { completeOccurrence } from '../lib/offline';
 import { canSpeak } from '../lib/speech';
 import { errorText, supabase } from '../lib/supabase';
@@ -134,7 +135,7 @@ function Tile({ o, t, today, queued, onOpen, onTick }: {
   return (
     <div className={cls}>
       <button className="pic" onClick={onOpen} aria-label={t.title} style={{ border: 0, padding: 0, borderRadius: 0 }}>
-        <Photo path={coverPath(t)} alt={t.title} />
+        <Photo path={coverPath(t)} alt={t.title} fallback={taskIcon(t)} />
       </button>
       <div className="badges">
         <span>

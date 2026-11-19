@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadMembers, loadTask } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import { formatDateTime, todayIn } from '../lib/dates';
 import { formatDay } from '../lib/schedule';
 import { errorText, must, supabase } from '../lib/supabase';
@@ -54,7 +55,7 @@ export function OccurrenceDetail() {
         <div className="media-row">
           <div className="stack" style={{ gap: 6 }}>
             <small>Task</small>
-            <div className="thumb" style={{ width: 160, height: 160, fontSize: 48 }}><Photo path={coverPath(t)} /></div>
+            <div className="thumb" style={{ width: 160, height: 160, fontSize: 48 }}><Photo path={coverPath(t)} fallback={taskIcon(t)} /></div>
           </div>
           {o.status === 'done' && (
             <div className="stack" style={{ gap: 6 }}>

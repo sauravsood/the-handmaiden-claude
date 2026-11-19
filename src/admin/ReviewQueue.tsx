@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadMembers, loadTasks } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import { formatDateTime } from '../lib/dates';
 import { formatDay } from '../lib/schedule';
 import { errorText, must, supabase } from '../lib/supabase';
@@ -51,7 +52,7 @@ export function ReviewQueue() {
             const t = d.data!.tasks.get(o.task_id);
             return (
               <Link key={o.id} to={`/admin/occurrences/${o.id}`} className="item">
-                <div className="thumb"><Photo path={t ? coverPath(t) : null} /></div>
+                <div className="thumb"><Photo path={t ? coverPath(t) : null} fallback={t ? taskIcon(t) : undefined} /></div>
                 <div className="thumb">{o.proof_photo_path ? <Photo path={o.proof_photo_path} /> : <small>no photo</small>}</div>
                 <div className="grow">
                   <div className="title">{t?.title ?? 'Archived task'}</div>

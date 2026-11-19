@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { coverPath } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import type { Comment, Occurrence, TaskFull } from '../lib/types';
 import { Photo, PhotoInput, SLOT_ICON } from '../components/ui';
 import { useSignedUrl } from '../lib/media';
@@ -38,9 +39,9 @@ export function WorkerTask({ o, t, today, comments, queued, onDone, onBack }: {
       </div>
 
       <div className="w-detail">
-        <button style={{ padding: 0, border: 0, background: 'none' }} onClick={() => setZoom(coverPath(t))} aria-label="Show photo large">
-          <span className="hero" style={{ display: 'grid', placeItems: 'center', fontSize: 80, overflow: 'hidden' }}>
-            <Photo path={coverPath(t)} alt={t.title} className="hero" />
+        <button style={{ padding: 0, border: 0, background: 'none' }} onClick={() => coverPath(t) && setZoom(coverPath(t))} aria-label="Show photo large">
+          <span className="hero" style={{ display: 'grid', placeItems: 'center', fontSize: 120, overflow: 'hidden' }}>
+            <Photo path={coverPath(t)} alt={t.title} className="hero" fallback={taskIcon(t)} />
           </span>
         </button>
 
