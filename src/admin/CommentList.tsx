@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMe } from '../auth';
 import { formatDateTime } from '../lib/dates';
 import { uploadPhoto } from '../lib/media';
-import { must, supabase } from '../lib/supabase';
+import { errorText, must, supabase } from '../lib/supabase';
 import type { Comment, Member } from '../lib/types';
 import { Avatar, ErrorBox, Photo, PhotoInput } from '../components/ui';
 
@@ -37,7 +37,7 @@ export function CommentList({ comments, members, taskId, occurrenceId, onAdded }
       setPhoto(null);
       onAdded();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorText(err));
     } finally {
       setBusy(false);
     }

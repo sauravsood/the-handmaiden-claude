@@ -1,3 +1,4 @@
+import { errorText } from './supabase';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Runs an async loader when its deps change; `reload` runs it again. */
@@ -16,7 +17,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
       const v = await fnRef.current();
       if (mine === seq.current) { setData(v); setError(null); }
     } catch (e) {
-      if (mine === seq.current) setError(e instanceof Error ? e.message : String(e));
+      if (mine === seq.current) setError(errorText(e));
     } finally {
       if (mine === seq.current) setLoading(false);
     }
