@@ -48,6 +48,25 @@ export async function prefetchTranslations(tasks: TaskFull[], lang: Lang | null 
   }
 }
 
+/**
+ * Asks the server to translate tasks into their workers' languages right after
+ * an admin saves them, so the worker's speaker answers at once. Fire and forget.
+ */
+export function warmTranslations(taskIds: string[]): void {
+  if (taskIds.length === 0) return;
+  void (async () => {
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${s.session?.access_token}` },
+        body: JSON.stringify({ task_ids: taskIds.slice(0, 40) }),
+        keepalive: true,
+      });
+    } catch { /* the worker's phone asks again */ }
+  })();
+}
+
 /** The text to read, if it can be had without the network. */
 function spokenNow(t: TaskFull, lang: Lang | null | undefined): Spoken | null {
   if (!lang || original(t).lang === lang) return original(t);
@@ -57,6 +76,7 @@ function spokenNow(t: TaskFull, lang: Lang | null | undefined): Spoken | null {
 // --- Speaking --------------------------------------------------------------
 
 const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+// Asking for the voices early makes the phone load them before the first tap.
 let voices: SpeechSynthesisVoice[] = synth?.getVoices() ?? [];
 synth?.addEventListener?.('voiceschanged', () => { voices = synth.getVoices(); });
 
@@ -66,7 +86,8 @@ const BCP47: Record<Lang, string> = { hi: 'hi-IN', en: 'en-IN' };
 function voiceFor(lang: Lang): SpeechSynthesisVoice | undefined {
   const tag = BCP47[lang].toLowerCase();
   const norm = (v: SpeechSynthesisVoice) => v.lang.toLowerCase().replace('_', '-');
-  return voices.find((v) => norm(v) === tag && /google/i.test(v.name))
+  // Voices on the phone itself start at once; online ones can take seconds.
+  return voices.find((v) => norm(v) === tag && v.localService)
     ?? voices.find((v) => norm(v) === tag)
     ?? voices.find((v) => norm(v).startsWith(`${lang}-`) || norm(v) === lang);
 }
@@ -87,7 +108,8 @@ export function stopSpeaking() {
 export async function speakTask(t: TaskFull, lang: Lang | null | undefined): Promise<void> {
   if (!synth) return;
   if (current === t.id) { stopSpeaking(); return; }
-  synth.cancel();
+  // Cancelling when nothing plays makes some phones (Safari) slow to start or drop the next speech.
+  if (synth.speaking || synth.pending) synth.cancel();
   setCurrent(t.id);
   let s = spokenNow(t, lang);
   if (!s) {
