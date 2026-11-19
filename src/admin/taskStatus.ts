@@ -9,7 +9,7 @@ export interface TaskStatus {
   key: TaskStatusKey;
   label: string;
   /** Pill colour class. */
-  tone: '' | 'good' | 'warn' | 'bad' | 'accent' | 'review';
+  tone: '' | 'good' | 'warn' | 'bad' | 'accent' | 'review' | 'today';
   /** Short extra text, such as the due date or who ticked it. */
   detail?: string;
   /** The occurrence the status comes from, if any. */
@@ -68,7 +68,7 @@ export function taskStatus(task: Pick<Task, 'worker_id'>, occs: Occurrence[], to
     case 'open':
       return current.attempt > 1
         ? { key: 'redo', label: 'Sent back', tone: 'warn', detail: `redo ${when}`, occurrence: current }
-        : { key: 'todo', label: 'To do', tone: 'accent', detail: when, occurrence: current };
+        : { key: 'todo', label: 'To do', tone: current.due_date === today ? 'today' : 'accent', detail: when, occurrence: current };
     case 'skipped':
       return { key: 'skipped', label: 'Skipped', tone: '', detail: withNext(when), occurrence: current };
     case 'missed':
