@@ -46,21 +46,45 @@ export function ReviewQueue() {
       <p className="muted">Open a completion to flag it, comment, send it back with updated requirements, or create a linked follow-up task.</p>
       <ErrorBox error={error ?? d.error} />
       {d.loading && !d.data ? <Loading /> : (
-        <div className="list">
-          {(d.data?.occ ?? []).length === 0 && <div className="empty">{filter === 'pending' ? 'Nothing waiting. All completions are reviewed.' : 'No flagged completions.'}</div>}
+        <div className="review-list">
+          {(d.data?.occ ?? []).length === 0 && <div className="list"><div className="empty">{filter === 'pending' ? 'Nothing waiting. All completions are reviewed.' : 'No flagged completions.'}</div></div>}
           {(d.data?.occ ?? []).map((o) => {
             const t = d.data!.tasks.get(o.task_id);
+            const who = d.data!.members.get(o.worker_id);
+            const href = `/admin/occurrences/${o.id}`;
             return (
-              <Link key={o.id} to={`/admin/occurrences/${o.id}`} className="item">
-                <div className="thumb"><Photo path={t ? coverPath(t) : null} fallback={t ? taskIcon(t) : undefined} /></div>
-                <div className="thumb">{o.proof_photo_path ? <Photo path={o.proof_photo_path} /> : <small>no photo</small>}</div>
-                <div className="grow">
-                  <div className="title">{t?.title ?? 'Archived task'}</div>
-                  <small>Due {formatDay(o.due_date)} · done {o.done_at ? formatDateTime(o.done_at, household.timezone) : ''}{o.done_late ? ' · late' : ''}{o.attempt > 1 ? ` · attempt ${o.attempt}` : ''}</small>
+              <article key={o.id} className="review-card">
+                <Link to={href} className="rc-head">
+                  <div className="thumb"><Photo path={t ? coverPath(t) : null} fallback={t ? taskIcon(t) : undefined} /></div>
+                  <div className="grow">
+                    <div className="rc-title">{t?.title ?? 'Archived task'}</div>
+                    <div className="rc-who">
+                      <Avatar member={who} size={22} />
+                      <span>{who?.display_name ?? 'Someone'} · done {o.done_at ? formatDateTime(o.done_at, household.timezone) : ''}</span>
+                    </div>
+                  </div>
+                  <span className="rc-chev" aria-hidden="true">›</span>
+                </Link>
+                <div className="rc-tags">
+                  <span className="pill">📅 Due {formatDay(o.due_date)}</span>
+                  {o.done_late && <span className="pill warn">Late</span>}
+                  {o.attempt > 1 && <span className="pill accent">Attempt {o.attempt}</span>}
+                  {filter === 'flagged' && <span className="pill bad">⚑ Flagged</span>}
+                  {!o.proof_photo_path && !t?.photo_required && <span className="pill">No photo</span>}
                 </div>
-                <Avatar member={d.data!.members.get(o.worker_id)} />
-                {filter === 'pending' && <button className="small" onClick={(e) => { e.preventDefault(); approve(o.id); }}>✓ Approve</button>}
-              </Link>
+                {o.proof_photo_path ? (
+                  <Link to={href} className="rc-proof" aria-label="Proof photo">
+                    <Photo path={o.proof_photo_path} fallback="📷" />
+                    <span className="rc-proof-label">📷 Proof photo</span>
+                  </Link>
+                ) : t?.photo_required && (
+                  <div className="rc-nophoto"><span aria-hidden="true">📷</span>Photo was required but none was taken</div>
+                )}
+                <div className="rc-actions">
+                  <Link to={href} className="btn">{filter === 'pending' ? 'Flag or comment' : 'Open'}</Link>
+                  {filter === 'pending' && <button className="primary" onClick={() => approve(o.id)}>✓ Approve</button>}
+                </div>
+              </article>
             );
           })}
         </div>

@@ -539,3 +539,36 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .task-status { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .task-status small { color: var(--muted); }
 .pill.review { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* ==========================================================================
+   Review queue: one card per completion, stacked on phones
+   ========================================================================== */
+.review-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+.review-card {
+  display: flex; flex-direction: column; gap: 12px; padding: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-sm);
+}
+.rc-head { display: flex; gap: 12px; align-items: center; color: inherit; text-decoration: none; min-width: 0; }
+.rc-head .thumb { width: 48px; height: 48px; }
+.rc-title { font-weight: 650; font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
+.rc-who { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+.rc-who .avatar { font-size: 11px; box-shadow: none; }
+.rc-who > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-chev { flex: none; font-size: 26px; line-height: 1; color: var(--faint); }
+.rc-head:hover .rc-title { color: var(--accent); }
+.rc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-proof {
+  position: relative; display: block; border-radius: var(--radius); overflow: hidden; background: var(--surface-2);
+  height: 220px; display: grid; place-items: center; font-size: 32px;
+}
+.rc-proof img { width: 100%; height: 100%; object-fit: cover; }
+.rc-proof-label {
+  position: absolute; left: 8px; bottom: 8px; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 999px;
+  background: rgb(0 0 0 / 0.55); color: #fff;
+}
+.rc-nophoto {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--radius);
+  background: var(--warn-soft); color: var(--warn); font-size: 14px; font-weight: 550;
+}
+.rc-actions { display: flex; gap: 8px; }
+.rc-actions > * { flex: 1; min-height: 44px; justify-content: center; text-align: center; }
