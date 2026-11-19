@@ -6,7 +6,7 @@ import {
   type PhotoRef, type TaskDraft,
 } from '../lib/data';
 import { todayIn } from '../lib/dates';
-import { must, supabase } from '../lib/supabase';
+import { errorText, must, supabase } from '../lib/supabase';
 import type { Label, Member, Occurrence } from '../lib/types';
 import { Avatar, ErrorBox, Loading, PhotoInput, PhotoRefImg, PRIORITY_LABEL, SLOT_ICON, SLOT_LABEL } from '../components/ui';
 import { SchedulePicker } from './SchedulePicker';
@@ -63,7 +63,7 @@ export function TaskEditor() {
           setDraft(emptyDraft(today));
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        setError(errorText(e));
       }
     })();
   }, [id, fromOcc, copyOf, today]);
@@ -106,7 +106,7 @@ export function TaskEditor() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorText(err));
       setBusy(false);
     }
   };

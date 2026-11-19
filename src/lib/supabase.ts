@@ -27,7 +27,7 @@ const FRIENDLY: Record<string, string> = {
 };
 
 // What browsers say when a request never got an answer (Safari/iOS, Chrome, Firefox).
-const NETWORK = /^(Load failed|Failed to fetch|NetworkError when attempting to fetch resource\.?|Network request failed)$/i;
+const NETWORK = /^(TypeError: )?(Load failed|Failed to fetch|NetworkError when attempting to fetch resource\.?|Network request failed)$/i;
 
 export function errorText(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
