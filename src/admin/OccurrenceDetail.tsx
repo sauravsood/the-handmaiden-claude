@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadMembers, loadTask } from '../lib/data';
 import { taskIcon } from '../lib/taskIcon';
+import { warmTranslations } from '../lib/speech';
 import { formatDateTime, todayIn } from '../lib/dates';
 import { formatDay } from '../lib/schedule';
 import { errorText, must, supabase } from '../lib/supabase';
@@ -156,6 +157,7 @@ function ActionDialog({ action, o, t, onClose, onDone }: {
             title: title.trim(), description: desc.trim(), edited_at: new Date().toISOString(),
             edit_note: `Updated when sending back: ${comment.trim() || 'requirements changed'}`,
           }).eq('id', t.id));
+          warmTranslations([t.id]);
         }
         const { error: e } = await supabase.rpc('reopen_occurrence', { p_id: o.id, p_comment: comment.trim() || null });
         if (e) throw new Error(e.message);
