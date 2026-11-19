@@ -10,6 +10,7 @@ import { must, supabase } from '../lib/supabase';
 import type { Label, Member, Occurrence } from '../lib/types';
 import { Avatar, ErrorBox, Loading, PhotoInput, PhotoRefImg, PRIORITY_LABEL, SLOT_ICON, SLOT_LABEL } from '../components/ui';
 import { SchedulePicker } from './SchedulePicker';
+import { taskIcon } from '../lib/taskIcon';
 
 const toRef = (f: File): PhotoRef => ({ file: f, preview: URL.createObjectURL(f) });
 
@@ -85,7 +86,6 @@ export function TaskEditor() {
     setError(null);
     if (!draft.title.trim()) return setError('Give the task a short title for admins.');
     if (!editing && draft.workerIds.length === 0) return setError('Choose at least one worker.');
-    if (!draft.cover) return setError('Add a cover photo. It is what the worker sees.');
     setBusy(true);
     try {
       if (editing) {
@@ -131,12 +131,21 @@ export function TaskEditor() {
         <h2>What</h2>
         <div className="media-row">
           <div className="stack" style={{ gap: 6 }}>
-            <small>Cover photo (what the worker sees)</small>
+            <small>Cover photo (optional, what the worker sees)</small>
             <PhotoInput onPick={([f]) => set({ cover: toRef(f) })}>
-              <div className="photo-slot big" role="button" tabIndex={0}>
-                {draft.cover ? <PhotoRefImg value={draft.cover} /> : '＋ Add photo'}
+              <div className="photo-slot big" role="button" tabIndex={0} aria-label={draft.cover ? 'Change photo' : 'Add photo'}>
+                {draft.cover ? <PhotoRefImg value={draft.cover} /> : (
+                  <span className="auto-icon"><span aria-hidden="true">{taskIcon(draft)}</span><small>＋ Add photo</small></span>
+                )}
               </div>
             </PhotoInput>
+            {draft.cover ? (
+              <button type="button" className="small ghost" onClick={() => set({ cover: null })}>Remove photo, use picture {taskIcon(draft)}</button>
+            ) : (
+              <small className="muted" style={{ maxWidth: 168 }}>
+                {draft.photos.length ? 'No cover? The worker sees your first extra photo.' : `No photo? The worker sees ${taskIcon(draft)}, picked from the title.`}
+              </small>
+            )}
           </div>
           <div className="stack grow">
             <label className="field"><span>Title</span>

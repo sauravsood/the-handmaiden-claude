@@ -364,6 +364,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 }
 .photo-slot:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+.photo-slot .auto-icon { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.photo-slot .auto-icon > span { font-size: 56px; line-height: 1; }
 .photo-slot:has(img) { border-style: solid; border-color: transparent; }
 .photo-slot .x { position: absolute; top: 6px; right: 6px; min-height: 26px; padding: 0 8px; font-size: 12px; border-radius: 999px; }
 .photo-slot.big { width: 168px; height: 168px; }
@@ -427,7 +429,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   position: relative; border-radius: var(--r-xl); background: var(--surface);
   padding: 0; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow); text-align: left;
 }
-.w-tile .pic { aspect-ratio: 1; width: 100%; background: var(--accent-soft); display: grid; place-items: center; font-size: 56px; box-shadow: none; min-height: 0; }
+.w-tile .pic { aspect-ratio: 1; width: 100%; background: var(--accent-soft); display: grid; place-items: center; font-size: 76px; box-shadow: none; min-height: 0; }
 .w-tile .pic:hover { background: var(--accent-soft); }
 .w-tile .pic img { width: 100%; height: 100%; object-fit: cover; }
 .w-tile .badges { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; }

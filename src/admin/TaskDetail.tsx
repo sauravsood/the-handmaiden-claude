@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMe } from '../auth';
 import { archiveTask, coverPath, loadLabels, loadMembers, loadOccurrences, loadTask } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import { formatDateTime, todayIn } from '../lib/dates';
 import { describeSchedule, formatDay } from '../lib/schedule';
 import { must, supabase } from '../lib/supabase';
@@ -62,7 +63,7 @@ export function TaskDetail() {
       </div>
 
       <div className="media-row">
-        <div className="thumb" style={{ width: 200, height: 200, fontSize: 64, borderRadius: 16 }}><Photo path={coverPath(t)} /></div>
+        <div className="thumb" style={{ width: 200, height: 200, fontSize: 64, borderRadius: 16 }}><Photo path={coverPath(t)} fallback={taskIcon(t)} /></div>
         <div className="stack grow" style={{ minWidth: 240 }}>
           <p style={{ whiteSpace: 'pre-wrap' }}>{t.description || <span className="muted">No description.</span>}</p>
           <div className="row">

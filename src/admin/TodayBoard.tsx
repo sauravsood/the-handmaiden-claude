@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadMembers, loadOccurrences, loadTasks } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import { formatTime, todayIn } from '../lib/dates';
 import { addDays, formatDay } from '../lib/schedule';
 import { must, supabase } from '../lib/supabase';
@@ -91,7 +92,7 @@ export function TodayBoard() {
                     return (
                       <div key={o.id} className={`item prio-${t?.priority ?? 4}`}>
                         <Link to={`/admin/occurrences/${o.id}`} className="item-link">
-                          <div className="thumb"><Photo path={o.proof_photo_path ?? (t ? coverPath(t) : null)} /></div>
+                          <div className="thumb"><Photo path={o.proof_photo_path ?? (t ? coverPath(t) : null)} fallback={t ? taskIcon(t) : undefined} /></div>
                           <div className="grow">
                             <div className="title">{t?.title ?? 'Archived task'}</div>
                             <small>

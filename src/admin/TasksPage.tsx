@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMe } from '../auth';
 import { coverPath, loadLabels, loadMembers, loadOccurrences, loadTasks, restoreTask } from '../lib/data';
+import { taskIcon } from '../lib/taskIcon';
 import { addDays, localDateOf, todayIn } from '../lib/dates';
 import { describeSchedule, dueDatesBetween, formatDay, nextFloatingAfter } from '../lib/schedule';
 import { errorText, supabase } from '../lib/supabase';
@@ -120,7 +121,7 @@ function TaskRow({ t, worker, right, sub, status }: {
 }) {
   return (
     <Link to={`/admin/tasks/${t.id}`} className={`item prio-${t.priority}`}>
-      <div className="thumb"><Photo path={coverPath(t)} /></div>
+      <div className="thumb"><Photo path={coverPath(t)} fallback={taskIcon(t)} /></div>
       <div className="grow">
         <div className="title">{t.title} {t.photo_required && <span title="Photo required">📷</span>}</div>
         <small>{sub ?? <>{SLOT_ICON[t.time_slot]} {describeSchedule(t)}</>}</small>
