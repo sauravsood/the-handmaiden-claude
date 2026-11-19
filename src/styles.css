@@ -23,6 +23,8 @@
   --warn-soft: #fdf0d9;
   --bad: #c0362d;
   --bad-soft: #fde7e4;
+  --today: #2563eb;
+  --today-soft: #e3ecfd;
   --w-bg: #ecf2f0;
 
   --r-sm: 8px;
@@ -62,6 +64,8 @@
     --warn-soft: #382a12;
     --bad: #ff8a80;
     --bad-soft: #3d1c1a;
+    --today: #6ea8ff;
+    --today-soft: #16294a;
     --w-bg: #0f1716;
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
@@ -200,6 +204,7 @@ label.check > input { margin-top: 1px; }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
 .pill.accent { background: var(--accent-soft); color: var(--accent); }
+.pill.today { background: var(--today-soft); color: var(--today); }
 /* Priority marker: an inset stripe, so rows with and without it line up. */
 .prio-1 { box-shadow: inset 4px 0 0 var(--bad); }
 .prio-2 { box-shadow: inset 4px 0 0 var(--warm); }
@@ -447,7 +452,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   background: rgb(255 255 255 / 0.94); border-radius: 999px; font-size: 22px; line-height: 1; padding: 6px 9px; color: #222;
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
 }
-/* Ring drawn outside the photo. Overdue (red) wins over urgent (orange). */
+/* Ring drawn outside the photo. Overdue (red) wins over urgent (orange), which wins over due today (blue). Upcoming has no ring. */
+.w-tile.today { box-shadow: 0 0 0 4px var(--today), var(--shadow); }
 .w-tile.p1 { box-shadow: 0 0 0 4px var(--warm), var(--shadow); }
 .w-tile.overdue { box-shadow: 0 0 0 4px var(--bad), var(--shadow); }
 .w-tile.done { box-shadow: var(--shadow-sm); }

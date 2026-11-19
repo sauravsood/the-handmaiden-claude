@@ -131,7 +131,7 @@ function Tile({ o, t, today, queued, onOpen, onTick }: {
 }) {
   if (!t) return null;
   const isDone = o.status === 'done';
-  const cls = ['w-tile', isDone ? 'done' : '', !isDone && o.due_date < today ? 'overdue' : '', !isDone && t.priority === 1 ? 'p1' : ''].join(' ');
+  const cls = ['w-tile', isDone ? 'done' : '', !isDone && o.due_date < today ? 'overdue' : '', !isDone && o.due_date === today ? 'today' : '', !isDone && t.priority === 1 ? 'p1' : ''].join(' ');
   return (
     <div className={cls}>
       <button className="pic" onClick={onOpen} aria-label={t.title} style={{ border: 0, padding: 0, borderRadius: 0 }}>

@@ -68,7 +68,8 @@ export function StatusPill({ o, today }: { o: Occurrence; today: string }) {
   if (o.status === 'skipped') return <span className="pill">Skipped</span>;
   if (o.status === 'missed') return <span className="pill bad">Missed</span>;
   if (o.attempt > 1) return <span className="pill warn">Redo</span>;
-  return o.due_date < today ? <span className="pill bad">Overdue</span> : <span className="pill accent">To do</span>;
+  return o.due_date < today ? <span className="pill bad">Overdue</span> : o.due_date === today ? <span className="pill today">Due today</span>
+    : <span className="pill accent">To do</span>;
 }
 
 export const SLOT_ICON: Record<string, string> = { morning: '🌅', afternoon: '☀️', evening: '🌙', anytime: '' };
