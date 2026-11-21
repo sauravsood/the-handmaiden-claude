@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { describeSchedule, dueDatesBetween, isDueOn, nextFloatingAfter, nextFloatingDate } from '../src/lib/schedule';
+import { describeSchedule, dueDatesBetween, isDueOn, nextFloatingAfter, nextFloatingDate, pendingDueDatesBetween } from '../src/lib/schedule';
 import type { Schedule } from '../src/lib/types';
 
 const base: Schedule = {
@@ -116,5 +116,19 @@ describe('nextFloatingAfter', () => {
     expect(nextFloatingAfter(f, [{ due_date: '2026-11-18', status: 'open', done_at: null }], today)).toBeNull();
     expect(nextFloatingAfter(base, [], today)).toBeNull();
     expect(nextFloatingAfter({ ...f, ends_on: today }, [], today)).toBeNull();
+  });
+});
+
+describe('pendingDueDatesBetween', () => {
+  const once: Schedule = { ...base, schedule_kind: 'once', freq: null, flexible: true, due_date: '2026-11-30', starts_on: '2026-11-01' };
+  it('drops a one-off task that was done early', () => {
+    expect(pendingDueDatesBetween(once, [], '2026-11-22', '2026-12-05')).toEqual(['2026-11-30']);
+    expect(pendingDueDatesBetween(once, [{ due_date: '2026-11-30', status: 'open' }], '2026-11-22', '2026-12-05')).toEqual(['2026-11-30']);
+    expect(pendingDueDatesBetween(once, [{ due_date: '2026-11-30', status: 'done' }], '2026-11-22', '2026-12-05')).toEqual([]);
+    expect(pendingDueDatesBetween(once, [{ due_date: '2026-11-30', status: 'skipped' }], '2026-11-22', '2026-12-05')).toEqual([]);
+  });
+  it('drops only the finished dates of a repeating task', () => {
+    expect(pendingDueDatesBetween(base, [{ due_date: '2026-11-23', status: 'done' }], '2026-11-22', '2026-11-24'))
+      .toEqual(['2026-11-22', '2026-11-24']);
   });
 });

@@ -4,7 +4,7 @@ import { useMe } from '../auth';
 import { coverPath, loadLabels, loadMembers, loadOccurrences, loadTasks, restoreTask } from '../lib/data';
 import { taskIcon } from '../lib/taskIcon';
 import { addDays, localDateOf, todayIn } from '../lib/dates';
-import { describeSchedule, dueDatesBetween, formatDay, nextFloatingAfter } from '../lib/schedule';
+import { describeSchedule, formatDay, nextFloatingAfter, pendingDueDatesBetween } from '../lib/schedule';
 import { errorText, supabase } from '../lib/supabase';
 import { useAsync } from '../lib/useAsync';
 import type { Member, Occurrence, TaskFull } from '../lib/types';
@@ -30,10 +30,11 @@ export function TasksPage() {
       : tab === 'upcoming' ? loadOccurrences({ from: addDays(today, 1), status: ['open'] }) : Promise.resolve([] as Occurrence[])),
     [tab, today],
   );
-  // For the status column: every open occurrence, plus the last 90 days of the rest.
+  // For the status column: every open occurrence, plus the rest from the last 90 days on
+  // (including future ones, since a "this week / this month" task can be done early).
   const recent = useAsync(
     () => (tab === 'all' || tab === 'upcoming'
-      ? Promise.all([loadOccurrences({ status: ['open'] }), loadOccurrences({ from: addDays(today, -90), to: today })])
+      ? Promise.all([loadOccurrences({ status: ['open'] }), loadOccurrences({ from: addDays(today, -90) })])
         .then(([a, b]) => [...new Map([...a, ...b].map((o) => [o.id, o])).values()])
       : Promise.resolve([] as Occurrence[])),
     [tab === 'all' || tab === 'upcoming', today],
@@ -174,7 +175,7 @@ function Upcoming({ tasks, occ, byId, taskById, today, occByTask, tz }: {
   const days = new Map<string, TaskFull[]>();
   // "Repeat after it's done" tasks: the next date depends on when the current one is ticked.
   const expected = new Map<string, string>();
-  for (const t of tasks) for (const d of dueDatesBetween(t, from, to)) days.set(d, [...(days.get(d) ?? []), t]);
+  for (const t of tasks) for (const d of pendingDueDatesBetween(t, occByTask?.get(t.id) ?? [], from, to)) days.set(d, [...(days.get(d) ?? []), t]);
   if (occByTask) for (const t of tasks) {
     const n = nextFloatingAfter(t, occByTask.get(t.id) ?? [], today, (ts) => localDateOf(ts, tz));
     if (!n || n.date > to) continue;
