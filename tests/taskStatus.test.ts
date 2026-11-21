@@ -31,6 +31,7 @@ describe('taskStatus', () => {
   });
   it('treats an open this-week task as to do', () => {
     expect(taskStatus(t, [occ({ due_date: '2026-11-22', flexible: true })], today).key).toBe('todo');
+    expect(taskStatus(t, [occ({ due_date: '2026-11-22', flexible: true, status: 'done', done_by: 'w', review_status: 'approved' })], today).key).toBe('done');
   });
   it('falls back to the latest past occurrence, then upcoming', () => {
     const s = taskStatus(t, [occ({ due_date: '2026-11-16', status: 'done', review_status: 'approved' }), occ({ due_date: '2026-11-18' })], today);

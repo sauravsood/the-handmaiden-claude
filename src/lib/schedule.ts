@@ -141,6 +141,20 @@ export function dueDatesBetween(t: Schedule, from: string, to: string): string[]
   return out;
 }
 
+/**
+ * Fixed-schedule due dates in [from, to] that still need doing: drops a date whose
+ * occurrence is already done, skipped or missed (a "this week / this month" task
+ * can be ticked before its last day), and a one-off task that is already finished.
+ */
+export function pendingDueDatesBetween(
+  t: Schedule, occs: { due_date: string; status: string }[], from: string, to: string,
+): string[] {
+  const closed = occs.filter((o) => o.status !== 'open');
+  if (t.schedule_kind === 'once' && closed.length) return [];
+  const closedDays = new Set(closed.map((o) => o.due_date));
+  return dueDatesBetween(t, from, to).filter((d) => !closedDays.has(d));
+}
+
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const weekdayName = (n: number) => WEEKDAYS[n - 1];

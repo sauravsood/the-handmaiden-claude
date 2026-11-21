@@ -50,9 +50,11 @@ export function taskStatus(task: Pick<Task, 'worker_id'>, occs: Occurrence[], to
     };
   }
 
-  // Today's occurrence, or a "this week / this month" one that can be done now.
+  // Today's occurrence, or a "this week / this month" one that can be done now
+  // (or was already done before its last day).
   const current = sorted.find((o) => o.due_date === today)
     ?? [...sorted].reverse().find((o) => o.flexible && o.status === 'open' && o.due_date > today)
+    ?? sorted.find((o) => o.flexible && o.due_date > today)
     ?? sorted.find((o) => o.due_date < today);
 
   if (!current) {
